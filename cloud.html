@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Cloud</title>
+
+    <link type="text/css" rel="stylesheet" href="jquery-ui-1.11.2/jquery-ui.css">
+    <link type="text/css" rel="stylesheet" href="cloud.css">
+  </head>
+  <body>
+    <div class="page">
+      <div class="panel-main" id="clients-main">
+        <h2>Users</h2>
+        <div class="panel-section" id="response-section">
+          <h3>Average response time</h3>
+        </div>
+        <div class="panel-section panel-section-bottom" id="demand-section">
+          <h3>Demand</h3>
+        </div>
+      </div>
+      <div class="network-main">
+      </div>
+
+      <div class="panel-main" id="cloud-main">
+        <h2>The Cloud</h2>
+        <div class="panel-section" id="load-section">
+          <h3>Load</h3>
+        </div>
+        <div class="panel-section" id="provision-section">
+          <h3>Provisioning</h3>
+        </div>
+        <div class="panel-section">
+          <p class="cost-text"><img src="placeholder.png">£<span id="cost-money">0</span> /h</p>
+          <p class="cost-text"><img src="placeholder.png"><span id="cost-power">0</span> W</p>
+        </div>
+        <div class="panel-section panel-section-bottom">
+          <button>Crash!</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="jquery-1.11.2.min.js"></script>
+    <script src="jquery-ui-1.11.2/jquery-ui.min.js"></script>
+    <script src="cloud.js"></script>
+  </body>
+</html>
