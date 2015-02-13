@@ -1,125 +1,154 @@
-var compute_demand = 0;
-var network_demand = 0;
-var storage_demand = 0;
+var resources = [
+    {
+        name: "compute",
+        costMoney: 1,
+        costPower: 3,
+        image: "placeholder.png",
+        tooltip: "Computation: processors to run the code"
+    },
+    {
+        name: "network",
+        costMoney: 3,
+        costPower: 1,
+        image: "placeholder.png",
+        tooltip: "Connectivity: network infrastructure in the data centre"
+    },
+    {
+        name: "storage",
+        costMoney: 2,
+        costPower: 2,
+        image: "placeholder.png",
+        tooltip: "Storage: hard drives and SSDs"
+    }
+];
 
-var compute_provision = 0;
-var network_provision = 0;
-var storage_provision = 0;
+var initResourceCounter = function() {
+    var counter = {};
+    for (var i = 0; i < resources.length; i++) {
+        counter[resources[i].name] = 0;
+    }
+    return counter;
+};
+
+var demand = initResourceCounter();
+var provision = initResourceCounter();
 
 
-
-var create_slider = function(name, max, callback, tooltip) {
-    var column = $('<div>').addClass('panel-column');
-    var slider = $('<div>').addClass('slider-slider').attr('id', name + '-slider');
-    var text = $('<p>').addClass('slider-text').attr('id', name + '-text').text('0');
-    var img = $('<img>').addClass('slider-img').attr('src', 'placeholder.png').attr('title', tooltip);
+var createSlider = function(name, max, image, tooltip, callback, widthPercent) {
+    var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%");
+    var slider = $("<div>").addClass("slider-slider").attr("id", name + "-slider");
+    var text = $("<p>").addClass("slider-text").attr("id", name + "-text").text("0");
+    var img = $("<img>").addClass("slider-img").attr("src", image).attr("title", tooltip);
 
     column.append(slider, text, img);
 
     slider.slider({
-        orientation: 'vertical',
-        range: 'min',
+        orientation: "vertical",
+        range: "min",
         min: 1,
         max: max,
         value: 1,
         slide: function(event, ui) {
-            text.text(slider.slider('value'));
-            callback();
-        },
-        changed: function(event, ui) {
-            text.text(slider.slider('value'));
+            text.text(slider.slider("value"));
             callback();
         }
     });
 
-    text.text(slider.slider('value'));
+    text.text(slider.slider("value"));
 
     return column;
 };
 
-var create_load_box = function(name) {
-    return $('<div>').addClass('panel-column').append(
-        $('<div>').addClass('load-box-colour').attr('id', name + '-load-box'),
-        $('<p>').addClass('load-box-text').append(
-            $('<span>').attr('id', name + '-load-text').text('0'),
-            '%'
+var createLoadBox = function(name, unit, widthPercent) {
+    return $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%").append(
+        $("<div>").addClass("load-box-colour").attr("id", name + "-load-box"),
+        $("<p>").addClass("load-box-text").append(
+            $("<span>").attr("id", name + "-load-text").text("0"),
+            unit
         )
     );
 };
 
-var update_clients = function() {
-    var clients = parseInt($('#clients-text').text());
-
-    compute_demand = 1 * clients;
-    network_demand = 4 * clients;
-    storage_demand = 2 * clients;
-
-    update_load();
+var update = function() {
+    updateClients();
+    updateCloud();
+    updateLoad();
 };
 
-var update_cloud = function() {
-    compute_provision = parseInt($('#compute-text').text());
-    network_provision = parseInt($('#network-text').text());
-    storage_provision = parseInt($('#storage-text').text());
+var updateClients = function() {
+    var clients = parseInt($("#clients-text").text());
 
-    $('#cost-money').text(compute_provision + 2 * storage_provision + 3 * network_provision);
-    $('#cost-power').text(network_provision + 2 * storage_provision + 3 * compute_provision);
-
-    update_load();
+    demand["compute"] = clients;
+    demand["network"] = 4 * clients;
+    demand["storage"] = 2 * clients;
 };
 
-var update_load = function()
-{
-    var update_individual_load = function(demand, provision, name) {
-        var load = Math.round(demand / provision * 100);
-        $('#' + name + '-load-text').text(load);
+var updateCloud = function() {
+    var totalMoney = 0;
+    var totalPower = 0;
+    for (var i = 0; i < resources.length; i++) {
+        var resource = resources[i];
+        var units = parseInt($("#" + resource.name + "-text").text());
+        provision[resource.name] = units;
+        totalMoney += resource.costMoney * units;
+        totalPower += resource.costPower * units;
+    }
+
+    $("#cost-money").text(totalMoney);
+    $("#cost-power").text(totalPower);
+};
+
+var updateLoad = function() {
+    var updateIndividualLoad = function(name) {
+        var load = Math.round(demand[name] / provision[name] * 100);
+        $("#" + name + "-load-text").text(load);
 
         var h = 0;
 
-        if (load < 0) {
+        if (load < 50) {
             h = 120;
         }
         else if (load > 100) {
             h = 0;
         }
         else {
-            h = Math.round((1 - (load / 100)) * 120);
+            h = Math.round((1 - ((load - 50) / 50)) * 120);
         }
 
-        $('#' + name + '-load-box').attr('style', 'background-color: hsl(' + h + ', 80%, 50%);');
+        $("#" + name + "-load-box").attr("style", "background-color: hsl(" + h + ", 80%, 50%);");
     };
 
-    update_individual_load(compute_demand, compute_provision, 'compute');
-    update_individual_load(network_demand, network_provision, 'network');
-    update_individual_load(storage_demand, storage_provision, 'storage');
-
+    for (var i = 0; i < resources.length; i++) {
+        updateIndividualLoad(resources[i].name);
+    }
 };
 
+var setupCloudColumn = function(resource) {
+    var width = 100.0 / resources.length;
+    $("#load-section").append(createLoadBox(resource.name, "%", width));
+    $("#provision-section").append(createSlider(
+        resource.name,
+        100,
+        resource.image,
+        resource.tooltip + ". One unit costs: £" + resource.costMoney + "/h, " + resource.costPower + " W.",
+        update,
+        width
+    ));
+}
+
 var main = function() {
-    $('#response-section').append(
-        create_load_box('response')
+    $("#response-section").append(createLoadBox("response", " ms", 100));
+    $("#demand-section").append(
+        createSlider("clients", 100, "placeholder.png", "Example client type", update, 100)
     );
 
-    $('#demand-section').append(
-        create_slider('clients', 100, update_clients, 'Clients')
-    );
-
-    $('#load-section').append(
-        create_load_box('compute'),
-        create_load_box('network'),
-        create_load_box('storage')
-    );
-
-    $('#provision-section').append(
-        create_slider('compute', 100, update_cloud, 'Computation: processors'),
-        create_slider('network', 100, update_cloud, 'Network: connectivity'),
-        create_slider('storage', 100, update_cloud, 'Storage: hard drives and SSDs')
-    );
-
-    update_clients();
-    update_cloud();
+    for (var i = 0; i < resources.length; i++) {
+        setupCloudColumn(resources[i]);
+    }
 
     $(document).tooltip();
+
+    update();
 }
 
 $(document).ready(main);
