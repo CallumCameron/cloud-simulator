@@ -36,7 +36,7 @@ p {
 
 .panel-section {
     overflow: auto;
-    padding: 20px;
+    padding: 10px 20px 10px 20px;
     border-bottom: 1px solid rgb(100,100,100);
 }
 
@@ -80,7 +80,26 @@ p {
     display: block;
 }
 
-.cost-text {
+.cost-table {
     text-align: center;
     font-size: 1.5em;
+    margin: auto;
+}
+
+.cost-cell-img {
+    padding: 0px;
+}
+
+.cost-cell-text {
+    width: 150px;
+}
+
+.cost-cell-bottom {
+    padding-top: 10px;
+}
+
+.failure-button {
+    font-size: 1.5em;
+    margin: auto;
+    display: block;
 }
