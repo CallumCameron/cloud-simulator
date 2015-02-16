@@ -3,21 +3,21 @@ var resources = [
         name: "compute",
         costMoney: 1,
         costPower: 3,
-        image: "placeholder.png",
+        image: "processor.png",
         tooltip: "Computation: processors to run the code"
     },
     {
         name: "network",
         costMoney: 3,
         costPower: 1,
-        image: "placeholder.png",
+        image: "network.png",
         tooltip: "Connectivity: network infrastructure in the data centre"
     },
     {
         name: "storage",
         costMoney: 2,
         costPower: 2,
-        image: "placeholder.png",
+        image: "harddrive.png",
         tooltip: "Storage: hard drives and SSDs"
     }
 ];
@@ -36,17 +36,22 @@ var provision = initResourceCounter();
 var clientTypes = [
     {
         name: "Facebook",
+        image: "facebook.png",
         compute: 0.2,
         network: 0.2,
         storage: 0.2
     },
     {
         name: "YouTube",
+        image: "youtube.png",
         compute: 0.2,
         network: 1,
         storage: 0.8
     }
 ];
+
+var totalMoneyUsed = 0;
+var totalEnergyUsed = 0;
 
 
 var createSlider = function(name, min, max, step, image, tooltip, widthPercent) {
@@ -91,6 +96,7 @@ var update = function() {
     updateClients();
     updateCloud();
     updateLoad();
+    updateResponseTime();
 };
 
 var updateClients = function() {
@@ -116,31 +122,68 @@ var updateCloud = function() {
 
     $("#cost-money").text(totalMoney);
     $("#cost-power").text(totalPower);
+
+    totalMoneyUsed += totalMoney;
+    totalEnergyUsed += totalPower;
+
+    $("#total-cost-money").text(totalMoneyUsed);
+    $("#total-cost-energy").text(totalEnergyUsed);
 };
+
+var redAmberGreen = function(percent) {
+    var h = 0;
+
+    if (percent < 50) {
+        h = 120;
+    }
+    else if (percent > 100) {
+        h = 0;
+    }
+    else {
+        h = Math.round((1 - ((percent - 50) / 50)) * 120);
+    }
+
+    return h;
+}
 
 var updateLoad = function() {
     var updateIndividualLoad = function(name) {
         var load = Math.round(demand[name] / provision[name] * 100);
         $("#" + name + "-load-text").text(Math.min(load, 100));
 
-        var h = 0;
-
-        if (load < 50) {
-            h = 120;
-        }
-        else if (load > 100) {
-            h = 0;
-        }
-        else {
-            h = Math.round((1 - ((load - 50) / 50)) * 120);
-        }
-
+        var h = redAmberGreen(load);
         $("#" + name + "-load-box").attr("style", "background-color: hsl(" + h + ", 80%, 50%);");
     };
 
     for (var i = 0; i < resources.length; i++) {
         updateIndividualLoad(resources[i].name);
     }
+};
+
+var updateResponseTime = function() {
+    // With N resources, N*100% is full load
+    var totalLoad = 0;
+    var fullLoad = resources.length * 100;
+
+    for (var i = 0; i < resources.length; i++) {
+        var name = resources[i].name;
+        totalLoad += demand[name] / provision[name] * 100;
+    }
+
+    var percent = totalLoad / fullLoad * 100.0;
+    var h = redAmberGreen(percent);
+
+    var responseTime = 0;
+
+    if (percent < 50) {
+        responseTime = 100;
+    }
+    else {
+        responseTime = 100 + (percent - 50) * 2;
+    }
+
+    $("#response-load-text").text(Math.round(responseTime));
+    $("#response-load-box").attr("style", "background-color: hsl(" + h + ", 80%, 50%);");
 };
 
 var equipmentFailure = function() {
@@ -157,7 +200,14 @@ var equipmentFailure = function() {
 
 var setupClientColumn = function(clientType) {
     $("#demand-section").append(
-        createSlider(clientType.name, 0, 100, 1, "placeholder.png", clientType.name, 100.0/clientTypes.length)
+        createSlider(
+            clientType.name,
+            0,
+            100,
+            1,
+            clientType.image,
+            clientType.name + ": one unit needs " + clientType.compute + " computation, " + clientType.network + " connectivity, " + clientType.storage + " storage.",
+            100.0/clientTypes.length)
     );
 };
 
