@@ -54,6 +54,80 @@ var totalMoneyUsed = 0;
 var totalEnergyUsed = 0;
 
 
+var packetSpawners = [];
+var neededPacketSpawners = 0;
+
+var createPacketSpawner = function() {
+    // A packet spawner creates animated packets. One spawner handles both directions in a link, with the packets in the different directions offset slightly. There is not a one-to-one correspondence in the number of packets sent and received - it is just illustrative, and uses the assumption that more packets will be sent cloud-to-client than the other way around. Packets are sent from the client at a constant rate. Packets are sent from the cloud at a rate
+    var netMain = $("#network-main");
+    var start = 10 + Math.random() * (netMain.height() - 20);
+    var spawner = {
+        clientHeight: start,
+        // cloudHeight: (Math.random() - 0.5) * 100 + start,
+        cloudHeight: netMain.height() / 2,
+        lastSpawnedClient: 0,
+        lastSpawnedCloud: 0,
+        spawningCloud: false,
+        update: function(self) {
+            if (frameNum - self.lastSpawnedClient > 10) {
+                self.spawnClient(self);
+            }
+            self.spawnCloud(self);
+        },
+        spawnClient: function(self) {
+            var packet = $("<div>").addClass("network-packet").attr("style", "left: 0px; top: " + (self.clientHeight - 5) + "px;");
+            netMain.append(packet);
+            packet.animate({ left: netMain.width() - packet.width(), top: self.cloudHeight - 5 }, 2000, "linear", function() { self.spawningCloud = true; $(this).remove(); });
+            self.lastSpawnedClient = frameNum;
+        },
+        spawnCloud: function(self) {
+            if (self.spawningCloud) {
+                if (frameNum - self.lastSpawnedCloud > Math.floor(parseInt($("#response-load-text").text()) / 100.0)) {
+                    var packet = $("<div>").addClass("network-packet");
+                    packet.attr("style", "left: " + (netMain.width() - packet.width()) + "px; top: " + (self.cloudHeight + 5) + "px;");
+                    netMain.append(packet);
+                    packet.animate(
+                        { left: 0, top: self.clientHeight + 5 },
+                        // 20 * parseInt($("#response-load-text").text()),
+                        2000,
+                        "linear",
+                        function() { $(this).remove(); }
+                    );
+                    self.lastSpawnedCloud = frameNum;
+                }
+            }
+        }
+    };
+
+    spawner.spawnClient(spawner);
+    packetSpawners.push(spawner);
+};
+
+var updatePacketSpawners = function() {
+    if (frameNum % 10 === 0) {
+        var clients = 0;
+        var maxClients = 0;
+        for (var i = 0; i < clientTypes.length; i++) {
+            clients += $("#" + clientTypes[i].name + "-slider").slider("value");
+            maxClients += $("#" + clientTypes[i].name + "-slider").slider("option", "max");
+        }
+        neededPacketSpawners = Math.ceil(clients / maxClients * 10);
+    }
+
+    while (packetSpawners.length < neededPacketSpawners) {
+        createPacketSpawner();
+    }
+
+    while (packetSpawners.length > neededPacketSpawners) {
+        packetSpawners.pop();
+    }
+
+    for (var i = 0; i < packetSpawners.length; i++) {
+        packetSpawners[i].update(packetSpawners[i]);
+    }
+};
+
+
 var createSlider = function(name, min, max, step, image, tooltip, widthPercent) {
     var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%");
     var slider = $("<div>").addClass("slider-slider").attr("id", name + "-slider");
@@ -92,11 +166,18 @@ var createLoadBox = function(name, unit, widthPercent) {
     );
 };
 
+var frameNum = 0;
+
 var update = function() {
-    updateClients();
-    updateCloud();
-    updateLoad();
-    updateResponseTime();
+    if (frameNum % 10 === 0) {
+        updateClients();
+        updateCloud();
+        updateLoad();
+        updateResponseTime();
+    }
+    updatePacketSpawners();
+
+    frameNum++;
 };
 
 var updateClients = function() {
@@ -242,7 +323,7 @@ var main = function() {
     $(".failure-button").click(equipmentFailure);
 
     update();
-    setInterval(update, 1000);
+    setInterval(update, 100);
 }
 
 $(document).ready(main);

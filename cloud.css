@@ -19,14 +19,8 @@ p {
     overflow: auto;
 }
 
-.network-main {
-    float: left;
-    width: 400px;
-    height: 100px;
-}
-
 .panel-main {
-    margin: 5px;
+    margin: 0px;
     float: left;
     width: 300px;
     border: 1px solid rgb(100,100,100);
@@ -127,4 +121,21 @@ p {
     position: absolute;
     left: 320px;
     width: 380px;
+}
+
+#network-main {
+    float: left;
+    width: 400px;
+    height: 700px;
+    position: relative;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.network-packet {
+    width: 3px;
+    height: 3px;
+    background-color: black;
+    position: absolute;
+    border-radius: 100%;
 }
