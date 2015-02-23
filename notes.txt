@@ -1,0 +1,6 @@
+power.png - 'Free for non-commercial use.' - http://www.iconarchive.com/show/weather-icons-by-custom-icon-design/lightning-icon.html
+money.png - 'Linkware (Backlink to http://robinweatherall.co.uk required)' - http://www.iconarchive.com/show/cashino-icons-by-robinweatherall/Coin-icon.html
+harddrive.png - LGPL - http://www.softicons.com/system-icons/crystal-project-icons-by-everaldo-coelho/apps-hard-drive-icon
+network.png - linkware - http://www.softicons.com/toolbar-icons/free-android-icons-by-mobileiconsets.com/networking-icon
+processor.png - CC BY-NC-SA - http://www.softicons.com/system-icons/web0.2ama-icons-by-chrfb/processor-icon
+cloud.png - non-commercial - http://www.iconarchive.com/show/pretty-office-12-icons-by-custom-icon-design/cloud-icon.html
