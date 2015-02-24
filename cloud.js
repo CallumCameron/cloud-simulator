@@ -43,7 +43,7 @@ var clientTypes = [
     },
     {
         name: "YouTube",
-        image: "youtube.png",
+        image: "yt.png",
         compute: 0.2,
         network: 1,
         storage: 0.8
