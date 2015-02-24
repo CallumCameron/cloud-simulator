@@ -58,7 +58,6 @@ var packetSpawners = [];
 var neededPacketSpawners = 0;
 
 var createPacketSpawner = function() {
-    // A packet spawner creates animated packets. One spawner handles both directions in a link, with the packets in the different directions offset slightly. There is not a one-to-one correspondence in the number of packets sent and received - it is just illustrative, and uses the assumption that more packets will be sent cloud-to-client than the other way around. Packets are sent from the client at a constant rate. Packets are sent from the cloud at a rate
     var netMain = $("#network-main");
     var start = 10 + Math.random() * (netMain.height() - 20);
     var spawner = {
