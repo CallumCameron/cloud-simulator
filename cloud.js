@@ -1,313 +1,35 @@
-// var resources = [
-//     {
-//         name: "compute",
-//         costMoney: 1,
-//         costPower: 3,
-//         image: "processor.png",
-//         tooltip: "Computation: processors to run the code"
-//     },
-//     {
-//         name: "network",
-//         costMoney: 3,
-//         costPower: 1,
-//         image: "network.png",
-//         tooltip: "Connectivity: network infrastructure in the data centre"
-//     },
-//     {
-//         name: "storage",
-//         costMoney: 2,
-//         costPower: 2,
-//         image: "harddrive.png",
-//         tooltip: "Storage: hard drives and SSDs"
-//     }
-// ];
-
-var initResourceCounter = function() {
-    var counter = {};
-    for (var i = 0; i < resources.length; i++) {
-        counter[resources[i].name] = 0;
-    }
-    return counter;
-};
-
-var demand = initResourceCounter();
-var provision = initResourceCounter();
-
-var clientTypes = [
-    {
-        name: "Facebook",
-        image: "facebook.png",
-        compute: 0.2,
-        network: 0.2,
-        storage: 0.2
-    },
-    {
-        name: "YouTube",
-        image: "yt.png",
-        compute: 0.2,
-        network: 1,
-        storage: 0.8
-    }
-];
-
-var totalMoneyUsed = 0;
-var totalEnergyUsed = 0;
-
-
-var packetSpawners = [];
-var neededPacketSpawners = 0;
-
-var createPacketSpawner = function() {
-    var netMain = $("#network-main");
-    var start = 10 + Math.random() * (netMain.height() - 20);
-    var spawner = {
-        clientHeight: start,
-        // cloudHeight: (Math.random() - 0.5) * 100 + start,
-        cloudHeight: netMain.height() / 2,
-        lastSpawnedClient: 0,
-        lastSpawnedCloud: 0,
-        spawningCloud: false,
-        update: function(self) {
-            if (frameNum - self.lastSpawnedClient > 10) {
-                self.spawnClient(self);
-            }
-            self.spawnCloud(self);
-        },
-        spawnClient: function(self) {
-            var packet = $("<div>").addClass("network-packet").attr("style", "left: 0px; top: " + (self.clientHeight - 5) + "px;");
-            netMain.append(packet);
-            packet.animate({ left: netMain.width() - packet.width(), top: self.cloudHeight - 5 }, 2000, "linear", function() { self.spawningCloud = true; $(this).remove(); });
-            self.lastSpawnedClient = frameNum;
-        },
-        spawnCloud: function(self) {
-            if (self.spawningCloud) {
-                if (frameNum - self.lastSpawnedCloud > Math.floor(parseInt($("#response-load-text").text()) / 100.0)) {
-                    var packet = $("<div>").addClass("network-packet");
-                    packet.attr("style", "left: " + (netMain.width() - packet.width()) + "px; top: " + (self.cloudHeight + 5) + "px;");
-                    netMain.append(packet);
-                    packet.animate(
-                        { left: 0, top: self.clientHeight + 5 },
-                        // 20 * parseInt($("#response-load-text").text()),
-                        2000,
-                        "linear",
-                        function() { $(this).remove(); }
-                    );
-                    self.lastSpawnedCloud = frameNum;
-                }
-            }
-        }
-    };
-
-    spawner.spawnClient(spawner);
-    packetSpawners.push(spawner);
-};
-
-var updatePacketSpawners = function() {
-    if (frameNum % 10 === 0) {
-        var clients = 0;
-        var maxClients = 0;
-        for (var i = 0; i < clientTypes.length; i++) {
-            clients += $("#" + clientTypes[i].name + "-slider").slider("value");
-            maxClients += $("#" + clientTypes[i].name + "-slider").slider("option", "max");
-        }
-        neededPacketSpawners = Math.ceil(clients / maxClients * 10);
-    }
-
-    while (packetSpawners.length < neededPacketSpawners) {
-        createPacketSpawner();
-    }
-
-    while (packetSpawners.length > neededPacketSpawners) {
-        packetSpawners.pop();
-    }
-
-    for (var i = 0; i < packetSpawners.length; i++) {
-        packetSpawners[i].update(packetSpawners[i]);
-    }
-};
-
-
-// var createSlider = function(name, min, max, step, image, tooltip, widthPercent) {
-//     var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%");
-//     var slider = $("<div>").addClass("slider-slider").attr("id", name + "-slider");
-//     var text = $("<p>").addClass("slider-text").attr("id", name + "-text").text("0");
-//     var img = $("<img>").addClass("slider-img").attr("src", image).attr("title", tooltip);
-
-//     column.append(slider, text, img);
-
-//     slider.slider({
-//         orientation: "vertical",
-//         range: "min",
-//         min: min,
-//         max: max,
-//         value: min,
-//         step: step,
-//         slide: function(event, ui) {
-//             text.text(slider.slider("value"));
-//         },
-//         change: function(event, ui) {
-//             text.text(slider.slider("value"));
-//         }
-//     });
-
-//     text.text(slider.slider("value"));
-
-//     return column;
-// };
-
-// var createLoadBox = function(name, unit, widthPercent) {
-//     return $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%").append(
-//         $("<div>").addClass("load-box-colour").attr("id", name + "-load-box"),
-//         $("<p>").addClass("load-box-text").append(
-//             $("<span>").attr("id", name + "-load-text").text("0"),
-//             unit
-//         )
-//     );
-// };
-
-var frameNum = 0;
-
-var update = function() {
-    if (frameNum % 10 === 0) {
-        updateClients();
-        updateCloud();
-        updateLoad();
-        updateResponseTime();
-    }
-    updatePacketSpawners();
-
-    frameNum++;
-};
-
-var updateClients = function() {
-    for (var i = 0; i < resources.length; i++) {
-        var resource = resources[i].name;
-        demand[resource] = 0;
-        for (var j = 0; j < clientTypes.length; j++) {
-            demand[resource] += clientTypes[j][resource] * parseInt($("#" + clientTypes[j].name + "-text").text());
-        }
-    }
-};
-
-var updateCloud = function() {
-    var totalMoney = 0;
-    var totalPower = 0;
-    for (var i = 0; i < resources.length; i++) {
-        var resource = resources[i];
-        var units = parseInt($("#" + resource.name + "-text").text());
-        provision[resource.name] = units;
-        totalMoney += resource.costMoney * units;
-        totalPower += resource.costPower * units;
-    }
-
-    $("#cost-money").text(totalMoney);
-    $("#cost-power").text(totalPower);
-
-    totalMoneyUsed += totalMoney;
-    totalEnergyUsed += totalPower;
-
-    $("#total-cost-money").text(totalMoneyUsed);
-    $("#total-cost-energy").text(totalEnergyUsed);
-};
-
-// var redAmberGreen = function(percent) {
-//     var h = 0;
-
-//     if (percent < 50) {
-//         h = 120;
-//     }
-//     else if (percent > 100) {
-//         h = 0;
-//     }
-//     else {
-//         h = Math.round((1 - ((percent - 50) / 50)) * 120);
-//     }
-
-//     return h;
-// };
-
-// var updateLoad = function() {
-//     var updateIndividualLoad = function(name) {
-//         var load = Math.round(demand[name] / provision[name] * 100);
-//         $("#" + name + "-load-text").text(Math.min(load, 100));
-
-//         var h = redAmberGreen(load);
-//         $("#" + name + "-load-box").attr("style", "background-color: hsl(" + h + ", 80%, 50%);");
-//     };
-
-//     for (var i = 0; i < resources.length; i++) {
-//         updateIndividualLoad(resources[i].name);
-//     }
-// };
-
-var updateResponseTime = function() {
-    // With N resources, N*100% is full load
-    var totalLoad = 0;
-    var fullLoad = resources.length * 100;
-
-    for (var i = 0; i < resources.length; i++) {
-        var name = resources[i].name;
-        totalLoad += demand[name] / provision[name] * 100;
-    }
-
-    var percent = totalLoad / fullLoad * 100.0;
-    var h = redAmberGreen(percent);
-
-    var responseTime = 0;
-
-    if (percent < 50) {
-        responseTime = 100;
-    }
-    else {
-        responseTime = 100 + (percent - 50) * 2;
-    }
-
-    $("#response-load-text").text(Math.round(responseTime));
-    $("#response-load-box").attr("style", "background-color: hsl(" + h + ", 80%, 50%);");
-};
-
-var equipmentFailure = function() {
-    for (var i = 0; i < resources.length; i++) {
-        var slider = $("#" + resources[i].name + "-slider");
-        var value = slider.slider("value");
-        var min = slider.slider("option", "min");
-        var step = slider.slider("option", "step");
-        var change = Math.round(Math.random() * 3) * step;
-
-        $("#" + resources[i].name + "-slider").slider("value", Math.max(value - change, min));
-    }
-};
-
-var setupClientColumn = function(clientType) {
-    $("#demand-section").append(
-        createSlider(
-            clientType.name,
-            0,
-            100,
-            1,
-            clientType.image,
-            clientType.name + ": one unit needs " + clientType.compute + " computation, " + clientType.network + " connectivity, " + clientType.storage + " storage.",
-            100.0/clientTypes.length)
-    );
-};
-
-var setupCloudColumn = function(resource) {
-    var width = 100.0 / resources.length;
-    $("#load-section").append(createLoadBox(resource.name, "%", width));
-    $("#provision-section").append(createSlider(
-        resource.name,
-        10,
-        100,
-        10,
-        resource.image,
-        resource.tooltip + ". One unit costs: £" + resource.costMoney + "/s, " + resource.costPower + " W.",
-        width
-    ));
-};
-
-
 $(document).ready(function() {
-    // UI
+    var COMPUTE = "compute";
+    var NETWORK = "network";
+    var STORAGE = "storage";
+
+    function Timer(callback) {
+        var frameNum = 0;
+        var intervalID = null;
+
+        return {
+            start: function() {
+                if (intervalID === null) {
+                    var tick = function() {
+                        callback(frameNum);
+                        frameNum++;
+                    };
+                    tick();
+                    intervalID = setInterval(tick, 100);
+                }
+            },
+            pause: function() {
+                if (intervalID !== null) {
+                    clearInterval(intervalID);
+                    intervalID = null;
+                }
+            },
+            reset: function() {
+                this.pause();
+                frameNum = 0;
+            }
+        };
+    }
 
     function Slider(min, max, step, image, tooltip, widthPercent) {
         var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%");
@@ -346,6 +68,12 @@ $(document).ready(function() {
                 slider.slider("value", val);
                 return this;
             },
+            randomDecrease: function() {
+                var RANDOM_RANGE = 3;
+                var change = Math.round(Math.random() * RANDOM_RANGE) * step;
+                slider.slider("value", Math.max(this.getValue() - change, min));
+                return this;
+            },
             reset: function() {
                 this.setValue(min);
                 return this;
@@ -355,7 +83,6 @@ $(document).ready(function() {
 
     function LoadBox(unit, widthPercent) {
         var value = 0;
-        var hundredPercentValue = 100;
         var text = $("<span>").text(value);
         var colourBox = $("<div>").addClass("load-box-colour");
         var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%").append(
@@ -374,16 +101,10 @@ $(document).ready(function() {
             getValue: function() {
                 return value;
             },
-            setValue: function(val, hundredPercent) {
-                value = val;
-                if (hundredPercent) {
-                    hundredPercentValue = hundredPercent;
-                }
-
-                text.text(value);
+            setValue: function(percent, textOverride) {
+                value = percent;
 
                 // Update the colour of the box
-                var percent = (value / hundredPercentValue) * 100.0;
                 var hue = 0;
 
                 if (percent < 50) {
@@ -397,6 +118,10 @@ $(document).ready(function() {
                 }
 
                 colourBox.attr("style", "background-color: hsl(" + hue + ", 100%, 50%);");
+
+                // Update the text
+                text.text(Math.round(textOverride ? textOverride : percent));
+
                 return this;
             },
             reset: function() {
@@ -405,8 +130,38 @@ $(document).ready(function() {
             }
         };
 
-        loadBox.setValue(value, hundredPercentValue);
+        loadBox.setValue(value);
         return loadBox;
+    }
+
+    function ResponseTimeBox() {
+        var BASE_RESPONSE_TIME = 100;
+        var loadBox = LoadBox(" ms", 100);
+        var responseTime = BASE_RESPONSE_TIME;
+
+        return {
+            addTo: function(parent) {
+                loadBox.addTo(parent);
+                return this;
+            },
+            getResponseTime: function() {
+                return responseTime;
+            },
+            setLoadPercent: function(percent) {
+                if (percent < 50) {
+                    responseTime = BASE_RESPONSE_TIME;
+                }
+                else {
+                    responseTime = BASE_RESPONSE_TIME + (percent - 50) * 2;
+                }
+                loadBox.setValue(percent, responseTime);
+                return this;
+            },
+            reset: function() {
+                loadBox.reset();
+                return this;
+            }
+        };
     }
 
     function Cost(money, power) {
@@ -438,6 +193,19 @@ $(document).ready(function() {
         };
     }
 
+    function CostDisplay(money, power, cost) {
+        // This is given existing IDs, unlike the other widgets,
+        // because cost per tick and overall cost are displayed
+        // differently, despite being conceptually the same.
+
+        return {
+            update: function() {
+                money.text(cost.getMoney());
+                power.text(cost.getPower());
+            }
+        };
+    }
+
     function Resource(name, unitCost, image, tooltip) {
         var width = 33;
         var loadBox = LoadBox("%", width).addTo($("#load-section"));
@@ -464,11 +232,11 @@ $(document).ready(function() {
             tick: function() {
                 var demand = 0;
                 for (var i = 0; i < demandSources.length; i++) {
-                    demand += demandSources[i]();
+                    demand += demandSources[i].getDemand(name);
                 }
 
                 loadPercent = Math.round(demand / slider.getValue() * 100);
-                colourBox.setValue(Math.min(loadPercent, 100));
+                loadBox.setValue(Math.min(loadPercent, 100));
                 return this;
             },
             getLoadPercent: function() {
@@ -476,6 +244,10 @@ $(document).ready(function() {
             },
             getTickCost: function() {
                 return unitCost.times(slider.getValue());
+            },
+            equipmentFailure: function() {
+                slider.randomDecrease();
+                return this;
             },
             reset: function() {
                 loadBox.reset();
@@ -485,123 +257,296 @@ $(document).ready(function() {
         };
     }
 
-    // var currentMode = null;
+    function ClientType(name, image, compute, network, storage) {
+        var MAX_CLIENTS = 100;
 
-    // var mainTimer = {
-    //     frameNum: 0,
-    //     intervalID: null,
-    //     start: function() {
-    //         if (this.intervalID === null) {
-    //             var that = this;
-    //             var tick = function() {
-    //                 currentMode.tick(that.frameNum);
-    //                 that.frameNum++;
-    //             };
-    //             tick();
-    //             this.intervalID = setInterval(tick, 100);
-    //         }
-    //     },
-    //     pause: function() {
-    //         if (this.intervalID !== null) {
-    //             clearInterval(this.intervalID);
-    //             this.intervalID = null;
-    //         }
-    //     },
-    //     reset: function() {
-    //         this.pause();
-    //         this.frameNum = 0;
-    //     }
-    // };
+        var unitDemand = {};
+        unitDemand[COMPUTE] = compute;
+        unitDemand[NETWORK] = network;
+        unitDemand[STORAGE] = storage;
 
+        var slider = Slider(
+            0,
+            MAX_CLIENTS,
+            1,
+            image,
+            name + ": one unit needs " + compute + " computation, " + network + " connectivity, " + storage + " storage.",
+            50
+        ).addTo($("#demand-section"));
 
-    // function Mode(button, enter, firstEnter, exit, tick) {
-    //     var mode = {
-    //         firstTime: true,
-    //         enter: function() {
-    //             enter();
-    //             if (this.firstTime) {
-    //                 firstEnter();
-    //                 this.firstTime = false;
-    //             }
-    //         },
-    //         exit: exit,
-    //         tick: tick
-    //     };
-    //     button.click(function() { changeMode(mode); });
-    //     return mode;
-    // }
+        return {
+            getNumClients: function() {
+                return slider.getValue();
+            },
+            getMaxClients: function() {
+                return MAX_CLIENTS;
+            },
+            getDemand: function(name) {
+                return unitDemand[name] * slider.getValue();
+            },
+            reset: function() {
+                slider.reset();
+                return this;
+            }
+        };
+    }
 
-    // function changeMode(newMode) {
-    //     if (newMode !== currentMode) {
-    //         mainTimer.reset();
-    //         if (currentMode !== null) {
-    //             currentMode.exit();
-    //         }
-    //         currentMode = newMode;
-    //         currentMode.enter();
-    //         mainTimer.start();
-    //     }
-    // }
+    function NetworkAnimation(parent, maxClients) {
+        var PACKET_CLASS = "network-packet";
 
+        function PacketSpawner() {
+            var PACKET_OFFSET = 5;
+            var baseYPos = Math.random() * parent.height();
+            var clientYPos = baseYPos;
+            var cloudYPos = parent.height() / 2;
+            var lastSpawnedClient = 0;
+            var lastSpawnedCloud = 0;
+            var spawningCloud = false;
+            var firstFrame = true;
 
-    // var manualMode = Mode(
-    //     "#btn-mode-manual",
-    //     function() {},
-    //     function() {},
-    //     function() {},
-    //     function(frameNum) {}
-    // );
+            return {
+                tick: function(frameNum, responseTime) {
+                    function spawnClient() {
+                        var packet = $("<div>").addClass(PACKET_CLASS);
+                        packet.attr("style", "left: 0px; top: " + (clientYPos - PACKET_OFFSET) + "px;");
+                        parent.append(packet);
+                        packet.animate(
+                            {
+                                left: parent.width() - packet.width(),
+                                top: cloudYPos - PACKET_OFFSET
+                            },
+                            2000,
+                            "linear",
+                            function() { spawningCloud = true; $(this).remove(); }
+                        );
+                        lastSpawnedClient = frameNum;
+                    }
 
-    // var responseMode = Mode(
-    //     "#btn-mode-response",
-    //     function() {},
-    //     function() {},
-    //     function() {},
-    //     function(frameNum) {}
-    // );
+                    function spawnCloud() {
+                        if (spawningCloud && (frameNum - lastSpawnedCloud > Math.floor(responseTime / 100.0))) {
+                            var packet = $("<div>").addClass(PACKET_CLASS);
+                            packet.attr("style", "left: " + (parent.width() - packet.width()) + "px; top: " + (cloudYPos + PACKET_OFFSET) + "px;");
+                            parent.append(packet);
+                            packet.animate(
+                                {
+                                    left: 0,
+                                    top: clientYPos + PACKET_OFFSET
+                                },
+                                // 20 * responseTime,
+                                2000,
+                                "linear",
+                                function() { $(this).remove(); }
+                            );
+                            lastSpawnedCloud = frameNum;
+                        }
+                    }
 
-    // var gameMode = Mode(
-    //     "#btn-mode-game",
-    //     function() {},
-    //     function() {},
-    //     function() {},
-    //     function(frameNum) {}
-    // );
+                    if (firstFrame) {
+                        spawnClient();
+                        firstFrame = false;
+                    }
+                    else {
+                        if (frameNum - lastSpawnedClient > 10) {
+                            spawnClient();
+                        }
+                        spawnCloud();
+                    }
+                }
+            };
+        }
 
+        var packetSpawners = [];
+        var numSpawnersNeeded = 0;
 
+        return {
+            tick: function(frameNum, numClients, responseTime) {
+                if (frameNum % 10 === 0) {
+                    numSpawnersNeeded = Math.ceil(numClients / maxClients * 10);
+                }
 
+                while (packetSpawners.length < numSpawnersNeeded) {
+                    packetSpawners.push(PacketSpawner());
+                }
 
+                while (packetSpawners.length > numSpawnersNeeded) {
+                    packetSpawners.pop();
+                }
 
+                for (var i = 0; i < packetSpawners.length; i++) {
+                    packetSpawners[i].tick(frameNum, responseTime);
+                }
+            },
+            reset: function() {
+                packetSpawners = [];
+                numSpawnersNeeded = 0;
+                $("." + PACKET_CLASS).remove();
+            }
+        };
+    }
 
+    function UI() {
+        var i;
+        var costThisTick = Cost(0, 0);
+        var totalCost = Cost(0, 0);
 
+        var resources = [
+            Resource(COMPUTE, Cost(1, 3), "processor.png", "Computation: processors to run the code"),
+            Resource(NETWORK, Cost(3, 1), "network.png", "Connectivity: network infrastructure in the data centre"),
+            Resource(STORAGE, Cost(2, 2), "harddrive.png", "Storage: hard drives and SSDs")
+        ];
 
+        var clientTypes = [
+            ClientType("Facebook", "facebook.png", 0.2, 0.2, 0.2),
+            ClientType("YouTube", "yt.png", 0.2, 1, 0.8)
+        ];
 
+        for (i = 0; i < resources.length; i++) {
+            for (var j = 0; j < clientTypes.length; j++) {
+                resources[i].addDemandSource(clientTypes[j]);
+            }
+        }
 
-    // changeMode(manualMode);
+        var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
 
+        var costThisTickDisplay = CostDisplay($("#tick-cost-money"), $("#tick-cost-power"), costThisTick);
+        var totalCostDisplay = CostDisplay($("#total-cost-money"), $("#total-cost-energy"), totalCost);
 
+        $(".failure-button").click(function() {
+            for (var i = 0; i < resources.length; i++) {
+                resources[i].equipmentFailure();
+            }
+        });
 
-    var resources = [
-        Resource("compute", Cost(1, 3), "processor.png", "Computation: processors to run the code"),
-        Resource("network", Cost(3, 1), "network.png", "Connectivity: network infrastructure in the data centre"),
-        Resource("storage", Cost(2, 2), "harddrive.png", "Storage: hard drives and SSDs")
-    ];
+        var maxClients = 0;
+        for (i = 0; i < clientTypes.length; i++) {
+            maxClients += clientTypes[i].getMaxClients();
+        }
 
-    // $("#response-section").append(createLoadBox("response", " ms", 100));
+        var network = NetworkAnimation($(".network-main"), maxClients);
 
-    // for (var i = 0; i < clientTypes.length; i++) {
-    //     setupClientColumn(clientTypes[i]);
-    // }
+        $("button").button();
+        $(document).tooltip();
 
-    // for (var i = 0; i < resources.length; i++) {
-    //     setupCloudColumn(resources[i]);
-    // }
+        return {
+            resources: resources,
+            clientTypes: clientTypes,
+            getResponseTime: function() {
+                return responseTimeBox.getValue();
+            },
+            tick: function(frameNum) {
+                var i;
+                if (frameNum % 10 === 0) {
+                    var loadPercent = 0;
+                    costThisTick.reset();
 
-    // $("button").button();
-    // $(document).tooltip();
+                    for (i = 0; i < resources.length; i++) {
+                        resources[i].tick();
+                        loadPercent += resources[i].getLoadPercent();
+                        costThisTick.increaseBy(resources[i].getTickCost());
+                    }
 
-    // $(".failure-button").click(equipmentFailure);
+                    responseTimeBox.setLoadPercent(loadPercent / resources.length);
 
-    // update();
-    // setInterval(update, 100);
+                    totalCost.increaseBy(costThisTick);
+                    costThisTickDisplay.update();
+                    totalCostDisplay.update();
+                }
+
+                var numClients = 0;
+                for (i = 0; i < clientTypes.length; i++) {
+                    numClients += clientTypes[i].getNumClients();
+                }
+
+                network.tick(frameNum, numClients, responseTimeBox.getResponseTime());
+            },
+            reset: function() {
+                var i;
+
+                for (i = 0; i < resources.length; i++) {
+                    resources[i].reset();
+                }
+
+                for (i = 0; i < clientTypes.length; i++) {
+                    clientTypes[i].reset();
+                }
+
+                responseTimeBox.reset();
+
+                costThisTick.reset();
+                totalCost.reset();
+                costThisTickDisplay.update();
+                totalCostDisplay.update();
+
+                network.reset();
+            }
+        };
+    }
+
+    function Mode(enter, firstEnter, exit, tick, ui) {
+        var firstTime = true;
+
+        return {
+            enter: function() {
+                ui.reset();
+                enter();
+                if (firstTime) {
+                    firstEnter();
+                    firstTime = false;
+                }
+            },
+            exit: exit,
+            tick: function(frameNum) {
+                ui.tick(frameNum);
+                tick(frameNum);
+            }
+        };
+    }
+
+    // Main
+
+    var ui = UI();
+    var currentMode = null;
+    var mainTimer = Timer(function(frameNum) { currentMode.tick(frameNum); });
+
+    var manualMode = Mode(
+        function() {},
+        function() {},
+        function() {},
+        function(frameNum) {},
+        ui
+    );
+
+    var responseMode = Mode(
+        function() {},
+        function() {},
+        function() {},
+        function(frameNum) {},
+        ui
+    );
+
+    var gameMode = Mode(
+        function() {},
+        function() {},
+        function() {},
+        function(frameNum) {},
+        ui
+    );
+
+    function changeMode(newMode) {
+        if (newMode !== currentMode) {
+            mainTimer.reset();
+            if (currentMode !== null) {
+                currentMode.exit();
+            }
+            currentMode = newMode;
+            currentMode.enter();
+            mainTimer.start();
+        }
+    }
+
+    $("#btn-mode-manual").click(function() { changeMode(manualMode); });
+    $("#btn-mode-response").click(function() { changeMode(responseMode); });
+    $("#btn-mode-game").click(function() { changeMode(gameMode); });
+
+    changeMode(manualMode);
 });
