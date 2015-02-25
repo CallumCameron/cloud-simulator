@@ -295,10 +295,11 @@ $(document).ready(function() {
         var PACKET_CLASS = "network-packet";
 
         function PacketSpawner() {
-            var PACKET_OFFSET = 5;
+            var PACKET_OFFSET = 3;
             var baseYPos = Math.random() * parent.height();
             var clientYPos = baseYPos;
-            var cloudYPos = parent.height() / 2;
+            // var cloudYPos = parent.height() / 2;
+            var cloudYPos = baseYPos;
             var lastSpawnedClient = 0;
             var lastSpawnedCloud = 0;
             var spawningCloud = false;
@@ -482,19 +483,24 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(enter, firstEnter, exit, tick, ui) {
+    function Mode(enter, firstEnter, exit, tick, ui, activeIndicator) {
+        var ACTIVE = "active";
         var firstTime = true;
 
         return {
             enter: function() {
                 ui.reset();
+                activeIndicator.addClass(ACTIVE);
                 enter();
                 if (firstTime) {
                     firstEnter();
                     firstTime = false;
                 }
             },
-            exit: exit,
+            exit: function() {
+                exit();
+                activeIndicator.removeClass(ACTIVE);
+            },
             tick: function(frameNum) {
                 ui.tick(frameNum);
                 tick(frameNum);
@@ -502,51 +508,50 @@ $(document).ready(function() {
         };
     }
 
-    // Main
+    function ModeSelector(ui) {
+        var parent = $("#mode-selector");
+        var currentMode = null;
+        var modes = [];
+        var mainTimer = Timer(function(frameNum) { currentMode.tick(frameNum); });
 
-    var ui = UI();
-    var currentMode = null;
-    var mainTimer = Timer(function(frameNum) { currentMode.tick(frameNum); });
-
-    var manualMode = Mode(
-        function() {},
-        function() {},
-        function() {},
-        function(frameNum) {},
-        ui
-    );
-
-    var responseMode = Mode(
-        function() {},
-        function() {},
-        function() {},
-        function(frameNum) {},
-        ui
-    );
-
-    var gameMode = Mode(
-        function() {},
-        function() {},
-        function() {},
-        function(frameNum) {},
-        ui
-    );
-
-    function changeMode(newMode) {
-        if (newMode !== currentMode) {
-            mainTimer.reset();
-            if (currentMode !== null) {
-                currentMode.exit();
+        function changeMode(newMode) {
+            if (newMode !== currentMode) {
+                mainTimer.reset();
+                if (currentMode !== null) {
+                    currentMode.exit();
+                }
+                currentMode = newMode;
+                currentMode.enter();
+                mainTimer.start();
             }
-            currentMode = newMode;
-            currentMode.enter();
-            mainTimer.start();
         }
+
+        return {
+            addMode: function(name, enter, firstEnter, exit, tick) {
+                var li = $("<li>");
+                var mode = Mode(enter, firstEnter, exit, tick, ui, li);
+                var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
+                    changeMode(mode);
+                });
+
+                li.append(a);
+                parent.append(li);
+                modes.push(mode);
+                return mode;
+            },
+            activateFirstMode: function() {
+                changeMode(modes[0]);
+            }
+        };
     }
 
-    $("#btn-mode-manual").click(function() { changeMode(manualMode); });
-    $("#btn-mode-response").click(function() { changeMode(responseMode); });
-    $("#btn-mode-game").click(function() { changeMode(gameMode); });
+    // Main
+    var ui = UI();
+    var modes = ModeSelector(ui);
 
-    changeMode(manualMode);
+    modes.addMode("Manual", function() {}, function() {}, function() {}, function(frameNum) {});
+    modes.addMode("Response", function() {}, function() {}, function() {}, function(frameNum) {});
+    modes.addMode("Game", function() {}, function() {}, function() {}, function(frameNum) {});
+
+    modes.activateFirstMode();
 });

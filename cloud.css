@@ -15,6 +15,12 @@ p {
     overflow: auto;
 }
 
+.panel-title-icon {
+    font-size: 5em;
+    margin-bottom: -15px;
+    padding: 0;
+}
+
 .panel-column {
     float: left;
 }
