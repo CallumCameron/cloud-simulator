@@ -3,7 +3,7 @@ h2 {
 }
 
 h3 {
-    margin: 0px;
+    margin: 0;
     margin-bottom: 10px;
 }
 
@@ -17,21 +17,6 @@ p {
 
 .panel-column {
     float: left;
-}
-
-.load-box-colour {
-    width: 30px;
-    height: 30px;
-    background-color: red;
-    border: 1px solid rgb(100,100,100);
-    border-radius: 5px;
-    margin: auto;
-}
-
-.load-box-text {
-    text-align: center;
-    margin: 0px;
-    margin-top: 5px;
 }
 
 .slider-slider {
@@ -51,6 +36,20 @@ p {
     display: block;
 }
 
+.load-box-colour {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgb(100,100,100);
+    border-radius: 5px;
+    margin: auto;
+}
+
+.load-box-text {
+    text-align: center;
+    margin: 0;
+    margin-top: 5px;
+}
+
 .cost-table {
     text-align: center;
     font-size: 1.5em;
@@ -58,7 +57,7 @@ p {
 }
 
 .cost-cell-img {
-    padding: 0px;
+    padding: 0;
 }
 
 .cost-cell-text {
@@ -82,7 +81,7 @@ p {
 }
 
 .total-cost-cell-img {
-    padding: 0px;
+    padding: 0;
     margin-right: 5px;
 }
 
@@ -94,7 +93,7 @@ p {
     padding-top: 10px;
 }
 
-#network-main {
+.network-main {
     height: 500px;
     position: relative;
 }
