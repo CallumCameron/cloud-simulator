@@ -36,6 +36,7 @@ $(document).ready(function() {
         var slider = $("<div>").addClass("slider-slider");
         var text = $("<p>").addClass("slider-text").text("0");
         var img = $("<img>").addClass("slider-img").attr("src", image).attr("title", tooltip);
+        img.tooltip();
 
         column.append(slider, text, img);
 
@@ -426,7 +427,7 @@ $(document).ready(function() {
         var network = NetworkAnimation($(".network-main"), maxClients);
 
         $("button").button();
-        $(document).tooltip();
+        $("button").tooltip();
 
         return {
             resources: resources,
