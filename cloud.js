@@ -386,7 +386,7 @@ $(document).ready(function() {
         };
     }
 
-    function UI() {
+    function UI(replayIntro) {
         var i;
         var costThisTick = Cost(0, 0);
         var totalCost = Cost(0, 0);
@@ -428,6 +428,8 @@ $(document).ready(function() {
 
         $("button").button();
         $("button").tooltip();
+
+        $("#btn-replay-intro").click(replayIntro);
 
         return {
             resources: resources,
@@ -484,18 +486,114 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(enter, firstEnter, exit, tick, ui, activeIndicator) {
-        var ACTIVE = "active";
-        var firstTime = true;
+    function DialogSequence(parentDiv) {
+        var HIDDEN = "dialog-hidden";
+        var header = $("<h4>").addClass("modal-title").text(parentDiv.attr("title"));
+        var body = $("<div>").addClass("modal-body").append(parentDiv);
+        var skipIntro = $("<button>").addClass("btn btn-default").attr("type", "button").text("Skip intro");
+        var prevPage = $("<button>").addClass("btn btn-primary").attr("type", "button").text("Back");
+        var nextPage = $("<button>").addClass("btn btn-primary").attr("type", "button").text("Next");
+
+        var modal = $("<div>").addClass("modal fade")
+            .attr("tabindex", "-1")
+            .attr("role", "dialog")
+            .attr("aria-labelledby", "thisModalLabel")
+            .attr("aria-hidden", "true")
+            .append(
+                $("<div>").addClass("modal-dialog").append(
+                    $("<div>").addClass("modal-content").append(
+                        $("<div>").addClass("modal-header").append(header),
+                        body,
+                        $("<div>").addClass("modal-footer").append(
+                            skipIntro,
+                            prevPage,
+                            nextPage
+                        )
+                    )
+                )
+            );
+
+        modal.modal({
+            backdrop: "static",
+            show: false
+        });
+
+        var currentPage = 0;
+        var pages = parentDiv.children();
+        var exitCallback = function() {};
+
+        for (var i = 0; i < pages.length; i++) {
+            $(pages[i]).addClass(HIDDEN);
+        }
+
+        function showPage(pageNum) {
+            $(pages[currentPage]).addClass(HIDDEN);
+            $(pages[pageNum]).removeClass(HIDDEN);
+
+            if (pageNum === 0) {
+                prevPage.addClass(HIDDEN);
+            }
+            else {
+                prevPage.removeClass(HIDDEN);
+            }
+
+            if (pageNum === pages.length - 1) {
+                nextPage.text("Finish");
+            }
+            else {
+                nextPage.text("Next");
+            }
+
+            currentPage = pageNum;
+        }
+
+        nextPage.click(function() {
+            if (currentPage < pages.length - 1) {
+                showPage(currentPage + 1);
+            }
+            else {
+                modal.modal("hide");
+                exitCallback();
+            }
+        });
+
+        prevPage.click(function() {
+            if (currentPage > 0) {
+                showPage(currentPage - 1);
+            }
+        });
+
+        skipIntro.click(function() {
+            modal.modal("hide");
+            exitCallback();
+        });
 
         return {
-            enter: function() {
+            run: function(callback) {
+                exitCallback = callback;
+                showPage(0);
+                modal.modal("show");
+            }
+        };
+    }
+
+    function Mode(enter, firstEnter, exit, tick, ui, activeIndicator, dialogSequence) {
+        var ACTIVE = "active";
+        var firstTime = true;
+        var dialog = DialogSequence(dialogSequence);
+
+        return {
+            enter: function(callback) {
                 ui.reset();
                 activeIndicator.addClass(ACTIVE);
                 enter();
                 if (firstTime) {
                     firstEnter();
                     firstTime = false;
+                    this.playIntro(callback);
+                }
+                else {
+                    callback();
                 }
             },
             exit: function() {
@@ -505,11 +603,14 @@ $(document).ready(function() {
             tick: function(frameNum) {
                 ui.tick(frameNum);
                 tick(frameNum);
+            },
+            playIntro: function(callback) {
+                dialog.run(callback);
             }
         };
     }
 
-    function ModeSelector(ui) {
+    function ModeSelector() {
         var parent = $("#mode-selector");
         var currentMode = null;
         var modes = [];
@@ -522,15 +623,21 @@ $(document).ready(function() {
                     currentMode.exit();
                 }
                 currentMode = newMode;
-                currentMode.enter();
-                mainTimer.start();
+                currentMode.enter(function() { mainTimer.start(); });
             }
         }
 
+        function replayIntro() {
+            mainTimer.pause();
+            currentMode.playIntro(function() { mainTimer.start(); });
+        }
+
+        var ui = UI(replayIntro);
+
         return {
-            addMode: function(name, enter, firstEnter, exit, tick) {
+            addMode: function(name, enter, firstEnter, exit, tick, dialogSequence) {
                 var li = $("<li>");
-                var mode = Mode(enter, firstEnter, exit, tick, ui, li);
+                var mode = Mode(enter, firstEnter, exit, tick, ui, li, dialogSequence);
                 var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
                     changeMode(mode);
                 });
@@ -547,12 +654,11 @@ $(document).ready(function() {
     }
 
     // Main
-    var ui = UI();
-    var modes = ModeSelector(ui);
+    var modes = ModeSelector();
 
-    modes.addMode("Manual", function() {}, function() {}, function() {}, function(frameNum) {});
-    modes.addMode("Response", function() {}, function() {}, function() {}, function(frameNum) {});
-    modes.addMode("Game", function() {}, function() {}, function() {}, function(frameNum) {});
+    modes.addMode("Manual", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-manual-mode"));
+    modes.addMode("Response", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-response-mode"));
+    modes.addMode("Game", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-game-mode"));
 
     modes.activateFirstMode();
 });

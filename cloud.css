@@ -111,3 +111,7 @@ p {
     position: absolute;
     border-radius: 100%;
 }
+
+.dialog-hidden {
+    display: none;
+}
