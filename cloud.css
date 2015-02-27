@@ -11,6 +11,11 @@ p {
     font-size: 1.25em;
 }
 
+.img-centred {
+    display: block;
+    margin: auto;
+}
+
 .list-group-item {
     overflow: auto;
 }
@@ -108,4 +113,8 @@ p {
 
 .dialog-hidden {
     display: none;
+}
+
+.modal-body p {
+    margin-bottom: 30px;
 }

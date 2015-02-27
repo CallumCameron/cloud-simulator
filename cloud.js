@@ -500,7 +500,7 @@ $(document).ready(function() {
 
     function DialogSequence(parentDiv) {
         var HIDDEN = "dialog-hidden";
-        var header = $("<h4>").addClass("modal-title").text(parentDiv.attr("title"));
+        var header = $("<h4>").addClass("modal-title").text(parentDiv.attr("data-dialog-sequence-title"));
         var body = $("<div>").addClass("modal-body").append(parentDiv);
         var skipIntro = $("<button>").addClass("btn btn-default").attr("type", "button").text("Skip intro");
         var prevPage = $("<button>").addClass("btn btn-primary").attr("type", "button").text("Back");
@@ -512,7 +512,7 @@ $(document).ready(function() {
             .attr("aria-labelledby", "thisModalLabel")
             .attr("aria-hidden", "true")
             .append(
-                $("<div>").addClass("modal-dialog").append(
+                $("<div>").addClass("modal-dialog modal-lg").append(
                     $("<div>").addClass("modal-content").append(
                         $("<div>").addClass("modal-header").append(header),
                         body,
