@@ -105,7 +105,7 @@
                 </table>
               </li>
               <li class="list-group-item">
-                <button class="failure-button">Equipment Failure!</button>
+                <button id="failure-button" class="btn btn-lg btn-block btn-danger" title="Make a random amount of equipment fail!">Equipment Failure!</button>
               </li>
             </ul>
           </div>
@@ -113,40 +113,46 @@
       </div>
     </div>
 
-    <div class="dialog-sequence" id="dialog-manual-mode" title="Welcome to the Cloud!">
+    <div class="dialog-sequence" id="dialog-manual-mode" title="Welcome to the Cloud Simulator!">
       <div>
-        <p>You use the Cloud all the time.</p>
-        <p>Every time you use Facebook, YouTube, or Gmail, you are using the Cloud. These websites are always on, accessible everywhere, and never fail.</p>
-        <p>But how do they work? What's really going on?</p>
+        <p>Chances are, you use the Cloud all the time &ndash; every time you check Facebook, watch a video on YouTube, or store a file in Dropbox.</p>
+        <p>But what <em>is</em> the Cloud, really, and how does it work?</p>
         <p>Click <strong>Next</strong> to learn about the Cloud, or <strong>Skip intro</strong> to go straight to the simulator.</p>
-      </div>
-      <div>
-        <p>Page 2</p>
-        <p>stuff</p>
       </div>
     </div>
 
     <div class="dialog-sequence" id="dialog-response-mode" title="Automatic provisioning">
       <div>
-        <p>Foobarbazquux!</p>
-      </div>
-      <div>
-        <p>Page 2</p>
+        <p>TODO</p>
       </div>
     </div>
 
     <div class="dialog-sequence" id="dialog-game-mode" title="A challenge">
       <div>
-        <p>Foobarbazquux!</p>
+        <p>TODO</p>
       </div>
-      <div>
-        <p>Page 2</p>
+    </div>
+
+    <div class="modal fade" id="about-box" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel">About the Cloud Simulator</h4>
+          </div>
+          <div class="modal-body">
+            <p>TODO</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="about-box-close" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
     <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="jquery.pause.min.js"></script>
     <script src="cloud.js"></script>
   </body>
 </html>

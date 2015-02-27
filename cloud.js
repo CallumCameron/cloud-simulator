@@ -36,7 +36,7 @@ $(document).ready(function() {
         var slider = $("<div>").addClass("slider-slider");
         var text = $("<p>").addClass("slider-text").text("0");
         var img = $("<img>").addClass("slider-img").attr("src", image).attr("title", tooltip);
-        img.tooltip();
+        img.tooltip({ container: "body" });
 
         column.append(slider, text, img);
 
@@ -378,6 +378,12 @@ $(document).ready(function() {
                     packetSpawners[i].tick(frameNum, responseTime);
                 }
             },
+            pause: function() {
+                $("." + PACKET_CLASS).pause();
+            },
+            resume: function() {
+                $("." + PACKET_CLASS).resume();
+            },
             reset: function() {
                 packetSpawners = [];
                 numSpawnersNeeded = 0;
@@ -413,7 +419,7 @@ $(document).ready(function() {
         var costThisTickDisplay = CostDisplay($("#tick-cost-money"), $("#tick-cost-power"), costThisTick);
         var totalCostDisplay = CostDisplay($("#total-cost-money"), $("#total-cost-energy"), totalCost);
 
-        $(".failure-button").click(function() {
+        $("#failure-button").click(function() {
             for (var i = 0; i < resources.length; i++) {
                 resources[i].equipmentFailure();
             }
@@ -427,7 +433,7 @@ $(document).ready(function() {
         var network = NetworkAnimation($(".network-main"), maxClients);
 
         $("button").button();
-        $("button").tooltip();
+        $("button").tooltip({ container: "body" });
 
         $("#btn-replay-intro").click(replayIntro);
 
@@ -462,6 +468,12 @@ $(document).ready(function() {
                 }
 
                 network.tick(frameNum, numClients, responseTimeBox.getResponseTime());
+            },
+            pause: function() {
+                network.pause();
+            },
+            resume: function() {
+                network.resume();
             },
             reset: function() {
                 var i;
@@ -515,6 +527,7 @@ $(document).ready(function() {
 
         modal.modal({
             backdrop: "static",
+            keyboard: false,
             show: false
         });
 
@@ -577,6 +590,31 @@ $(document).ready(function() {
         };
     }
 
+    function AboutBox() {
+        var modal = $("#about-box");
+        var close = $("#about-box-close");
+
+        modal.modal({
+            backdrop: "static",
+            keyboard: false,
+            show: false
+        });
+
+        var exitCallback = function() {};
+
+        close.click(function() {
+            modal.modal("hide");
+            exitCallback();
+        });
+
+        return {
+            run: function(callback) {
+                exitCallback = callback;
+                modal.modal("show");
+            }
+        };
+    }
+
     function Mode(enter, firstEnter, exit, tick, ui, activeIndicator, dialogSequence) {
         var ACTIVE = "active";
         var firstTime = true;
@@ -629,8 +667,16 @@ $(document).ready(function() {
 
         function replayIntro() {
             mainTimer.pause();
-            currentMode.playIntro(function() { mainTimer.start(); });
+            ui.pause();
+            currentMode.playIntro(function() { ui.resume(); mainTimer.start(); });
         }
+
+        var aboutBox = AboutBox();
+        $("#btn-about").click(function() {
+            mainTimer.pause();
+            ui.pause();
+            aboutBox.run(function() { ui.resume(); mainTimer.start(); });
+        });
 
         var ui = UI(replayIntro);
 
