@@ -11,11 +11,6 @@ p {
     font-size: 1.25em;
 }
 
-.img-centred {
-    display: block;
-    margin: auto;
-}
-
 .list-group-item {
     overflow: auto;
 }
