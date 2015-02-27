@@ -4,7 +4,7 @@ $(document).ready(function() {
     var STORAGE = "storage";
 
     function Timer(callback) {
-        var frameNum = 0;
+        var frameNum = 1;
         var intervalID = null;
 
         return {
@@ -26,7 +26,7 @@ $(document).ready(function() {
             },
             reset: function() {
                 this.pause();
-                frameNum = 0;
+                frameNum = 1;
             }
         };
     }
@@ -194,10 +194,13 @@ $(document).ready(function() {
         };
     }
 
-    function CostDisplay(money, power, cost) {
+    function CostDisplay(money, moneyImg, power, powerImg, cost) {
         // This is given existing IDs, unlike the other widgets,
         // because cost per tick and overall cost are displayed
         // differently, despite being conceptually the same.
+
+        moneyImg.tooltip({ container: "body" });
+        powerImg.tooltip({ container: "body" });
 
         return {
             update: function() {
@@ -416,13 +419,31 @@ $(document).ready(function() {
 
         var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
 
-        var costThisTickDisplay = CostDisplay($("#tick-cost-money"), $("#tick-cost-power"), costThisTick);
-        var totalCostDisplay = CostDisplay($("#total-cost-money"), $("#total-cost-energy"), totalCost);
+        var costThisTickDisplay = CostDisplay(
+            $("#tick-cost-money"),
+            $("#tick-cost-money-img"),
+            $("#tick-cost-power"),
+            $("#tick-cost-power-img"),
+            costThisTick
+        );
+        var totalCostDisplay = CostDisplay(
+            $("#total-cost-money"),
+            $("#total-cost-money-img"),
+            $("#total-cost-energy"),
+            $("#total-cost-energy-img"),
+            totalCost
+        );
 
         $("#failure-button").click(function() {
             for (var i = 0; i < resources.length; i++) {
                 resources[i].equipmentFailure();
             }
+        });
+
+        var resetCostButton = $("#reset-cost-button");
+        resetCostButton.click(function() {
+            totalCost.reset();
+            totalCostDisplay.update();
         });
 
         var maxClients = 0;
@@ -442,6 +463,12 @@ $(document).ready(function() {
             clientTypes: clientTypes,
             getResponseTime: function() {
                 return responseTimeBox.getValue();
+            },
+            showResetCostButton: function() {
+                resetCostButton.show();
+            },
+            hideResetCostButton: function() {
+                resetCostButton.hide();
             },
             tick: function(frameNum) {
                 var i;
@@ -624,7 +651,7 @@ $(document).ready(function() {
             enter: function(callback) {
                 ui.reset();
                 activeIndicator.addClass(ACTIVE);
-                enter();
+                enter(ui);
                 if (firstTime) {
                     firstEnter();
                     firstTime = false;
@@ -702,9 +729,9 @@ $(document).ready(function() {
     // Main
     var modes = ModeSelector();
 
-    modes.addMode("Manual", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-manual-mode"));
-    modes.addMode("Response", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-response-mode"));
-    modes.addMode("Game", function() {}, function() {}, function() {}, function(frameNum) {}, $("#dialog-game-mode"));
+    modes.addMode("Manual", function(ui) { ui.showResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-manual-mode"));
+    modes.addMode("Response", function(ui) { ui.showResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-response-mode"));
+    modes.addMode("Game", function(ui) { ui.hideResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-game-mode"));
 
     modes.activateFirstMode();
 });

@@ -21,8 +21,7 @@ p {
 }
 
 .panel-title-icon {
-    font-size: 5em;
-    margin-bottom: -15px;
+    font-size: 3em;
     padding: 0;
 }
 
@@ -83,19 +82,12 @@ p {
     font-size: 1.25em;
     width: 100%;
     margin: auto;
-}
-
-.total-cost-cell-img {
-    padding: 0;
-    margin-right: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .total-cost-cell-text {
-    width: 200px;
-}
-
-.total-cost-cell-bottom {
-    padding-top: 10px;
+    width: 30%;
 }
 
 .network-main {

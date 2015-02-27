@@ -41,7 +41,7 @@
 
           <div class="panel panel-primary">
             <div class="panel-heading">
-              <h2 class="panel-title">Users</h2>
+              <h2 class="panel-title panel-title-icon"><span class="glyphicon glyphicon-user" aria-hidden="true"></span></h2>
             </div>
             <ul class="list-group">
               <li class="list-group-item" id="response-section">
@@ -60,16 +60,21 @@
             <div class="panel-heading">
               <h2 class="panel-title">Total cost</h2>
             </div>
-            <table class="total-cost-table">
-              <tbody>
-                <tr>
-                  <td class="total-cost-cell-img"><img class="slider-img" src="money.png" alt="money"></td>
-                  <td class="total-cost-cell-text">£<span id="total-cost-money">0</span></td>
-                  <td class="total-cost-cell-img total-cost-cell-bottom"><img class="slider-img" src="power.png" alt="energy"></td>
-                  <td class="total-cost-cell-text total-cost-cell-bottom"><span id="total-cost-energy">0</span> J</td>
-                </tr>
-              </tbody>
-            </table>
+            <ul class="list-group">
+              <li class="list-group-item">
+                <table class="total-cost-table">
+                  <tbody>
+                    <tr>
+                      <td class="total-cost-cell-img"><img id="total-cost-money-img" class="slider-img" src="money.png" alt="money" title="Total cost in £"></td>
+                      <td class="total-cost-cell-text">£<span id="total-cost-money">0</span></td>
+                      <td class="total-cost-cell-img total-cost-cell-bottom"><img id="total-cost-energy-img" class="slider-img" src="power.png" alt="energy" title="Total energy usage in J"></td>
+                      <td class="total-cost-cell-text total-cost-cell-bottom"><span id="total-cost-energy">0</span> J</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button id="reset-cost-button" class="btn btn-block btn-default">Reset</button>
+              </li>
+            </ul>
           </div>
 
           <div class="network-main">
@@ -94,11 +99,11 @@
                 <table class="cost-table">
                   <tbody>
                     <tr>
-                      <td class="cost-cell-img"><img class="slider-img" src="money.png" alt="money"></td>
+                      <td class="cost-cell-img"><img id="tick-cost-money-img" class="slider-img" src="money.png" alt="money" title="Cost, in £ per second"></td>
                       <td class="cost-cell-text">£<span id="tick-cost-money">0</span> /s</td>
                     </tr>
                     <tr>
-                      <td class="cost-cell-img cost-cell-bottom"><img class="slider-img" src="power.png" alt="power"></td>
+                      <td class="cost-cell-img cost-cell-bottom"><img id="tick-cost-power-img" class="slider-img" src="power.png" alt="power" title="Power, in W (1 W is 1 J per second)"></td>
                       <td class="cost-cell-text cost-cell-bottom"><span id="tick-cost-power">0</span> W</td>
                     </tr>
                   </tbody>
@@ -132,9 +137,34 @@
           </a>
         </p>
         <p>This is a picture of a data centre. It&rsquo;s a huge building full of computers called <em>servers</em>, because they serve up web pages. Think of a waiter or waitress in a restaurant &ndash; you tell them what you want, and they serve it to you! When you search on Google, your computer tells a particular server what you want to search for, and the server serves it.</p>
-        <!-- <img src="google-datacenter-tech-13.jpg" alt="A Google data centre"> -->
         <p>In the old days (the early 1990s), most websites would just have one server each. But if the website was really popular, even the best servers would become overloaded, and it would take a long time for pages to load &ndash; or the site might stop working altogether. Everything was slow in the 90s anyway, and this just made things worse!</p>
         <p>Click <strong>Next</strong> to find out how the Cloud solves this problem.</p>
+      </div>
+      <div>
+        <p>Instead of just using one server, websites running in the Cloud can use as many servers as they need to stay fast &ndash; and they do it automatically. If more users access the site, a special program will give the site more servers to use. Using more servers is called <em>provisioning</em>.</p>
+        <p>But running servers is expensive, so if users go away, the website will give the servers up again, and go back to using less.</p>
+        <p>This happens all the time, without the users ever knowing &ndash; they just see that the site remains fast.</p>
+        <p>Sometimes servers stop working. By using slightly more servers than it needs, a site can make sure it is still fast and accessible even if some of the servers fail. This is called <em>fault tolerance</em>.</p>
+        <p>A busy popular website could be using thousands of servers in data centres all over the world, all at the same time!</p>
+        <p>Click <strong>Next</strong> to learn about the resources websites need.</p>
+      </div>
+      <div>
+        <p>Servers provide three essential resources:</p>
+        <ul>
+          <li><em>Computation</em> &ndash; processors to run programs</li>
+          <li><em>Connectivity</em> &ndash; network connections between the servers</li>
+          <li><em>Storage</em> &ndash; disks to store data on</li>
+        </ul>
+        <p>Each of these costs a different amount of money to run, and uses a different amount of energy.</p>
+        <p>Different websites also have different needs. For example, a video site like YouTube needs a lot of connectivity to serve huge videos quickly. But something like Facebook, which is mainly text and images, doesn&rsquo;t need as much.</p>
+        <p>So, managing the Cloud is a balancing act between giving websites the resources they need, without using too much money and energy.</p>
+        <p>Click <strong>Next</strong> to learn how the Cloud Simulator lets you take control of this balancing act!</p>
+      </div>
+      <div>
+        <p>The sliders on the left let you control how many people are using each of the sites.</p>
+        <p>The sliders on the right let you control how much resources the Cloud allocates.</p>
+        <p>Try adjusting them &ndash; and see how the packets moving across the network respond. If the load on the Cloud is high, it will take a long time to respond to the users. Increase the resources allocated, and things speed up again. Keep the <em>response time</em> low to keep the users happy!</p>
+        <p>But you can keep an eye on the <em>total cost</em>, too. The more resources you allocate, the faster the cost goes up.</p>
       </div>
     </div>
 
@@ -144,7 +174,7 @@
       </div>
     </div>
 
-    <div class="dialog-sequence" id="dialog-game-mode" data-dialog-sequence-title="A challenge">
+    <div class="dialog-sequence" id="dialog-game-mode" data-dialog-sequence-title="A challenge!">
       <div>
         <p>TODO</p>
       </div>
