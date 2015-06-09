@@ -472,6 +472,7 @@ $(document).ready(function() {
             for (var i = 0; i < resources.length; i++) {
                 resources[i].equipmentFailure();
             }
+            $("#cloud-panel").effect("shake", { distance: 10 });
         }
 
         var failureButton = $("#failure-button");
@@ -558,6 +559,8 @@ $(document).ready(function() {
             },
             reset: function() {
                 var i;
+
+                $("#cloud-panel").stop(true, true);
 
                 for (i = 0; i < resources.length; i++) {
                     resources[i].reset();
