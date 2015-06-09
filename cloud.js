@@ -75,6 +75,12 @@ $(document).ready(function() {
                 slider.slider("value", Math.max(this.getValue() - change, min));
                 return this;
             },
+            enable: function() {
+                slider.slider("enable");
+            },
+            disable: function() {
+                slider.slider("disable");
+            },
             reset: function() {
                 this.setValue(min);
                 return this;
@@ -211,19 +217,24 @@ $(document).ready(function() {
     }
 
     function Resource(name, unitCost, image, tooltip) {
-        var width = 33;
-        var loadBox = LoadBox("%", width).addTo($("#load-section"));
+        var WIDTH = 33;
+        var STEP = 10;
+        var loadBox = LoadBox("%", WIDTH).addTo($("#load-section"));
         var slider = Slider(
             10,
             100,
-            10,
+            STEP,
             image,
             tooltip + ". One unit costs: £" + unitCost.getMoney() + "/s, " + unitCost.getPower() + " W.",
-            width
+            WIDTH
         ).addTo($("#provision-section"));
 
         var demandSources = [];
         var loadPercent = 0;
+
+        // The desired position is where the slider would 'like' to be given the current load
+        var DESIRED_PERCENT = 60;
+        var autoMode = false;
 
         return {
             getName: function() {
@@ -239,8 +250,22 @@ $(document).ready(function() {
                     demand += demandSources[i].getDemand(name);
                 }
 
-                loadPercent = Math.round(demand / slider.getValue() * 100);
+                var sliderPos = slider.getValue();
+
+                loadPercent = Math.round(demand / sliderPos * 100);
                 loadBox.setValue(Math.min(loadPercent, 100));
+
+                var raw = Math.ceil((demand / DESIRED_PERCENT * 100) / STEP) * STEP;
+                var desiredPosition = Math.min(Math.max(raw, 10), 100);
+
+                if (autoMode) {
+                    if (sliderPos < desiredPosition) {
+                        slider.setValue(sliderPos + STEP);
+                    } else if (sliderPos > desiredPosition) {
+                        slider.setValue(sliderPos - STEP);
+                    }
+                }
+
                 return this;
             },
             getLoadPercent: function() {
@@ -253,9 +278,18 @@ $(document).ready(function() {
                 slider.randomDecrease();
                 return this;
             },
+            enableAutoMode: function() {
+                slider.disable();
+                autoMode = true;
+            },
+            disableAutoMode: function() {
+                slider.enable();
+                autoMode = false;
+            },
             reset: function() {
                 loadBox.reset();
                 slider.reset();
+                autoMode = false;
                 return this;
             }
         };
@@ -434,11 +468,14 @@ $(document).ready(function() {
             totalCost
         );
 
-        $("#failure-button").click(function() {
+        function equipmentFailure() {
             for (var i = 0; i < resources.length; i++) {
                 resources[i].equipmentFailure();
             }
-        });
+        }
+
+        var failureButton = $("#failure-button");
+        failureButton.click(equipmentFailure);
 
         var resetCostButton = $("#reset-cost-button");
         resetCostButton.click(function() {
@@ -470,6 +507,23 @@ $(document).ready(function() {
             hideResetCostButton: function() {
                 resetCostButton.hide();
             },
+            showFailureButton: function() {
+                failureButton.show();
+            },
+            hideFailureButton: function() {
+                failureButton.hide();
+            },
+            enableResourceAutoSliders: function() {
+                for (var i = 0; i < resources.length; i++) {
+                    resources[i].enableAutoMode();
+                }
+            },
+            disableResourceAutoSliders: function() {
+                for (var i = 0; i < resources.length; i++) {
+                    resources[i].disableAutoMode();
+                }
+            },
+            equipmentFailure: equipmentFailure,
             tick: function(frameNum) {
                 var i;
                 if (frameNum % 10 === 0) {
@@ -642,7 +696,7 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(enter, firstEnter, exit, tick, ui, activeIndicator, dialogSequence) {
+    function Mode(state, enter, firstEnter, exit, tick, ui, activeIndicator, dialogSequence) {
         var ACTIVE = "active";
         var firstTime = true;
         var dialog = DialogSequence(dialogSequence);
@@ -651,9 +705,9 @@ $(document).ready(function() {
             enter: function(callback) {
                 ui.reset();
                 activeIndicator.addClass(ACTIVE);
-                enter(ui);
+                enter(state, ui);
                 if (firstTime) {
-                    firstEnter();
+                    firstEnter(state);
                     firstTime = false;
                     this.playIntro(callback);
                 }
@@ -662,12 +716,12 @@ $(document).ready(function() {
                 }
             },
             exit: function() {
-                exit();
+                exit(state);
                 activeIndicator.removeClass(ACTIVE);
             },
             tick: function(frameNum) {
                 ui.tick(frameNum);
-                tick(frameNum);
+                tick(state, ui, frameNum);
             },
             playIntro: function(callback) {
                 dialog.run(callback);
@@ -708,9 +762,9 @@ $(document).ready(function() {
         var ui = UI(replayIntro);
 
         return {
-            addMode: function(name, enter, firstEnter, exit, tick, dialogSequence) {
+            addMode: function(name, state, enter, firstEnter, exit, tick, dialogSequence) {
                 var li = $("<li>");
-                var mode = Mode(enter, firstEnter, exit, tick, ui, li, dialogSequence);
+                var mode = Mode(state, enter, firstEnter, exit, tick, ui, li, dialogSequence);
                 var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
                     changeMode(mode);
                 });
@@ -729,9 +783,56 @@ $(document).ready(function() {
     // Main
     var modes = ModeSelector();
 
-    modes.addMode("Manual", function(ui) { ui.showResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-manual-mode"));
-    modes.addMode("Response", function(ui) { ui.showResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-response-mode"));
-    modes.addMode("Game", function(ui) { ui.hideResetCostButton(); }, function() {}, function() {}, function(frameNum) {}, $("#dialog-game-mode"));
+    modes.addMode("Manual",
+                  null,
+                  function(state, ui) {
+                      ui.showResetCostButton();
+                      ui.showFailureButton();
+                      ui.disableResourceAutoSliders();
+                  },
+                  function(state) {},
+                  function(state) {},
+                  function(state, ui, frameNum) {},
+                  $("#dialog-manual-mode"));
+
+
+    modes.addMode("Response",
+                  {
+                      failureTimer: 0,
+                      randomDelay: function() {
+                          // 300 frames = 30 seconds
+                          return Math.random() * 300;
+                      }
+                  },
+                  function(state, ui) {
+                      ui.showResetCostButton();
+                      ui.hideFailureButton();
+                      ui.enableResourceAutoSliders();
+                      state.failureTimer = Math.max(state.randomDelay(), 100);
+                  },
+                  function(state) {},
+                  function(state) {},
+                  function(state, ui, frameNum) {
+                      state.failureTimer--;
+                      if (state.failureTimer <= 0) {
+                          ui.equipmentFailure();
+                          state.failureTimer = state.randomDelay();
+                      }
+                  },
+                  $("#dialog-response-mode"));
+
+
+    modes.addMode("Game",
+                  null,
+                  function(state, ui) {
+                      ui.hideResetCostButton();
+                      ui.hideFailureButton();
+                      ui.disableResourceAutoSliders();
+                  },
+                  function(state) {},
+                  function(state) {},
+                  function(state, ui, frameNum) {},
+                  $("#dialog-game-mode"));
 
     modes.activateFirstMode();
 });

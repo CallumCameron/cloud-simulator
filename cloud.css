@@ -105,3 +105,15 @@ p {
 .modal-body p {
     margin-bottom: 30px;
 }
+
+.ui-slider-range {
+    background: #337AB7;
+}
+
+.ui-slider-disabled {
+    opacity: 1.0;
+}
+
+.ui-slider-disabled .ui-slider-handle {
+    opacity: 0.0;
+}
