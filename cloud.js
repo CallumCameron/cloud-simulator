@@ -3,6 +3,8 @@ $(document).ready(function() {
     var NETWORK = "network";
     var STORAGE = "storage";
 
+    var PARTICLE_CLASS = "particle";
+
     function Timer(callback) {
         var frameNum = 1;
         var intervalID = null;
@@ -69,10 +71,14 @@ $(document).ready(function() {
                 slider.slider("value", val);
                 return this;
             },
-            randomDecrease: function() {
-                var RANDOM_RANGE = 3;
+            randomDecrease: function(el) {
+                var RANDOM_RANGE = 4;
                 var change = Math.round(Math.random() * RANDOM_RANGE) * step;
                 slider.slider("value", Math.max(this.getValue() - change, min));
+                if (change !== 0) {
+                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+                }
                 return this;
             },
             enable: function() {
@@ -274,8 +280,8 @@ $(document).ready(function() {
             getTickCost: function() {
                 return unitCost.times(slider.getValue());
             },
-            equipmentFailure: function() {
-                slider.randomDecrease();
+            equipmentFailure: function(el) {
+                slider.randomDecrease(el);
                 return this;
             },
             enableAutoMode: function() {
@@ -327,6 +333,113 @@ $(document).ready(function() {
                 return this;
             }
         };
+    }
+
+    function EffectsList() {
+        function Node(val) {
+            return {
+                val: val,
+                prev: null,
+                next: null
+            };
+        }
+
+        var head = null;
+        var tail = null;
+
+        function unlink(node) {
+            if (node.prev === null && node.next === null) {
+                // Single-element list
+                head = null;
+                tail = null;
+                return null;
+            } else if (node.prev === null) {
+                // Head of a list with at least two elements
+                head = node.next;
+                head.prev = null;
+                return head;
+            } else if (node.next === null) {
+                // Tail of a list with at least two elements
+                tail = node.prev;
+                tail.next = null;
+                return null;
+            } else {
+                // Somewhere in the middle
+                node.prev.next = node.next;
+                node.next.prev = node.prev;
+                return node.next;
+            }
+        }
+        return {
+            add: function(effect) {
+                if (head === null) {
+                    head = tail = Node(effect);
+                } else {
+                    tail.next = Node(effect);
+                    tail.next.prev = tail;
+                    tail = tail.next;
+                }
+            },
+            tick: function() {
+                var node = head;
+                while (node !== null) {
+                    if (!node.val.tick()) {
+                        node = unlink(node);
+                    } else {
+                        node = node.next;
+                    }
+                }
+            },
+            reset: function() {
+                head = null;
+                tail = null;
+            }
+        };
+    }
+
+    function Spark(x, y) {
+        var NUM_SPARKS = 5;
+        var timer = Math.round(Math.random() * 2);
+        return {
+            tick: function() {
+                if (timer <= 0) {
+                    for (var i = 0; i < NUM_SPARKS; i++) {
+                        var spark = $("<div>").addClass(PARTICLE_CLASS).addClass("spark");
+
+                        var width = 4;
+                        var height = 3;
+
+                        if (Math.random() > 0.5) {
+                            var tmp = width;
+                            width = height;
+                            height = tmp;
+                        }
+
+                        spark.attr("style", "left: " + x + "px; top: " + y + "px; width: " + width + "px; height: " + height + "px;");
+
+                        $("body").append(spark);
+
+                        var distance = 40 + Math.random() * 20;
+                        var time = 200 + Math.random() * 150;
+                        var angle = Math.random() * 2 * Math.PI;
+
+                        spark.animate(
+                            {
+                                left: x + distance * Math.cos(angle),
+                                top: y + distance * Math.sin(angle)
+                            },
+                            time,
+                            "linear",
+                            function() { $(this).remove(); }
+                        );
+                    }
+                    return false;
+                } else {
+                    timer--;
+                    return true;
+                }
+            }
+        }
     }
 
     function NetworkAnimation(parent, maxClients) {
@@ -470,7 +583,7 @@ $(document).ready(function() {
 
         function equipmentFailure() {
             for (var i = 0; i < resources.length; i++) {
-                resources[i].equipmentFailure();
+                resources[i].equipmentFailure(effects);
             }
             $("#cloud-panel").effect("shake", { distance: 10 });
         }
@@ -490,6 +603,8 @@ $(document).ready(function() {
         }
 
         var network = NetworkAnimation($(".network-main"), maxClients);
+
+        var effects = EffectsList();
 
         $("button").button();
         $("button").tooltip({ container: "body" });
@@ -525,6 +640,9 @@ $(document).ready(function() {
                 }
             },
             equipmentFailure: equipmentFailure,
+            addEffect: function(effect) {
+                effects.add(effect);
+            },
             tick: function(frameNum) {
                 var i;
                 if (frameNum % 10 === 0) {
@@ -550,12 +668,15 @@ $(document).ready(function() {
                 }
 
                 network.tick(frameNum, numClients, responseTimeBox.getResponseTime());
+                effects.tick();
             },
             pause: function() {
                 network.pause();
+                $("." + PARTICLE_CLASS).pause();
             },
             resume: function() {
                 network.resume();
+                $("." + PARTICLE_CLASS).resume();
             },
             reset: function() {
                 var i;
@@ -578,6 +699,8 @@ $(document).ready(function() {
                 totalCostDisplay.update();
 
                 network.reset();
+                effects.reset();
+                $("." + PARTICLE_CLASS).remove();
             }
         };
     }

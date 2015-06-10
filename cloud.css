@@ -117,3 +117,12 @@ p {
 .ui-slider-disabled .ui-slider-handle {
     opacity: 0.0;
 }
+
+.particle {
+    position: absolute;
+    pointer-events: none;
+}
+
+.spark {
+    background-color: #00ffff;
+}
