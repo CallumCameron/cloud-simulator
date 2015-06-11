@@ -3,21 +3,29 @@ $(document).ready(function() {
     var NETWORK = "network";
     var STORAGE = "storage";
 
+    var BASE_RESPONSE_TIME = 100;
     var PARTICLE_CLASS = "particle";
 
     function Timer(callback) {
         var frameNum = 1;
         var intervalID = null;
+        var running = false;
+
+        function tick() {
+            callback(frameNum);
+            frameNum++;
+        }
+
+        function startInternal() {
+            tick();
+            intervalID = setInterval(tick, 100);
+        }
 
         return {
             start: function() {
-                if (intervalID === null) {
-                    var tick = function() {
-                        callback(frameNum);
-                        frameNum++;
-                    };
-                    tick();
-                    intervalID = setInterval(tick, 100);
+                if (!running) {
+                    running = true;
+                    startInternal();
                 }
             },
             pause: function() {
@@ -26,9 +34,15 @@ $(document).ready(function() {
                     intervalID = null;
                 }
             },
+            resume: function() {
+                if (running && intervalID === null) {
+                    startInternal();
+                }
+            },
             reset: function() {
                 this.pause();
                 frameNum = 1;
+                running = false;
             }
         };
     }
@@ -59,26 +73,36 @@ $(document).ready(function() {
 
         text.text(slider.slider("value"));
 
+        function getValue() {
+            return slider.slider("value");
+        }
+
+        function decrease(el, steps) {
+            slider.slider("value", Math.max(getValue() - steps * step, min));
+            if (steps !== 0) {
+                el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+                el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+            }
+        }
+
         return {
             addTo: function(parent) {
                 parent.append(column);
                 return this;
             },
-            getValue: function() {
-                return slider.slider("value");
-            },
+            getValue: getValue,
             setValue: function(val) {
                 slider.slider("value", val);
                 return this;
             },
+            decrease: function(el, steps) {
+                decrease(el, steps);
+                return this;
+            },
             randomDecrease: function(el) {
                 var RANDOM_RANGE = 4;
-                var change = Math.round(Math.random() * RANDOM_RANGE) * step;
-                slider.slider("value", Math.max(this.getValue() - change, min));
-                if (change !== 0) {
-                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
-                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
-                }
+                var steps = Math.round(Math.random() * RANDOM_RANGE);
+                decrease(el, steps);
                 return this;
             },
             enable: function() {
@@ -148,7 +172,6 @@ $(document).ready(function() {
     }
 
     function ResponseTimeBox() {
-        var BASE_RESPONSE_TIME = 100;
         var loadBox = LoadBox(" ms", 100);
         var responseTime = BASE_RESPONSE_TIME;
 
@@ -171,6 +194,35 @@ $(document).ready(function() {
                 return this;
             },
             reset: function() {
+                loadBox.reset();
+                return this;
+            }
+        };
+    }
+
+    function CumulativeResponseTimeBox(parent) {
+        var loadBox = LoadBox(" ms", 100);
+        loadBox.addTo(parent);
+        var readings = 0;
+        var averageResponseTime = 0;
+
+        return {
+            getAverageResponseTime: function() {
+                return averageResponseTime;
+            },
+            getTotalResponseTime: function() {
+                return averageResponseTime * readings;
+            },
+            add: function(val) {
+                averageResponseTime = (readings * averageResponseTime + val) / (readings + 1.0);
+                readings++;
+                var colourPercent = ((averageResponseTime - BASE_RESPONSE_TIME) / 2.0) + 50;
+                loadBox.setValue(colourPercent, averageResponseTime);
+                return this;
+            },
+            reset: function() {
+                averageResponseTime = 0;
+                readings = 0;
                 loadBox.reset();
                 return this;
             }
@@ -280,7 +332,11 @@ $(document).ready(function() {
             getTickCost: function() {
                 return unitCost.times(slider.getValue());
             },
-            equipmentFailure: function(el) {
+            equipmentFailure: function(el, steps) {
+                slider.decrease(el, steps);
+                return this;
+            },
+            randomEquipmentFailure: function(el) {
                 slider.randomDecrease(el);
                 return this;
             },
@@ -322,11 +378,21 @@ $(document).ready(function() {
             getNumClients: function() {
                 return slider.getValue();
             },
+            setNumClients: function(num) {
+                slider.setValue(num);
+                return this;
+            },
             getMaxClients: function() {
                 return MAX_CLIENTS;
             },
             getDemand: function(name) {
                 return unitDemand[name] * slider.getValue();
+            },
+            enableSlider: function() {
+                slider.enable();
+            },
+            disableSlider: function() {
+                slider.disable();
             },
             reset: function() {
                 slider.reset();
@@ -542,7 +608,7 @@ $(document).ready(function() {
         };
     }
 
-    function UI(replayIntro) {
+    function UI(timerCallback, replayIntroCallback) {
         var i;
         var costThisTick = Cost(0, 0);
         var totalCost = Cost(0, 0);
@@ -565,6 +631,7 @@ $(document).ready(function() {
         }
 
         var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
+        var cumulativeResponseTime = CumulativeResponseTimeBox($("#cumulative-response-panel"));
 
         var costThisTickDisplay = CostDisplay(
             $("#tick-cost-money"),
@@ -573,6 +640,7 @@ $(document).ready(function() {
             $("#tick-cost-power-img"),
             costThisTick
         );
+
         var totalCostDisplay = CostDisplay(
             $("#total-cost-money"),
             $("#total-cost-money-img"),
@@ -581,21 +649,38 @@ $(document).ready(function() {
             totalCost
         );
 
-        function equipmentFailure() {
-            for (var i = 0; i < resources.length; i++) {
-                resources[i].equipmentFailure(effects);
-            }
+        function shakeCloudPanel() {
             $("#cloud-panel").effect("shake", { distance: 10 });
         }
 
+        function equipmentFailure(vals) {
+            var i = 0;
+            while (i < vals.length && i < resources.length) {
+                resources[i].equipmentFailure(effects, vals[i]);
+                i++;
+            }
+            shakeCloudPanel();
+        }
+
+        function randomEquipmentFailure() {
+            for (var i = 0; i < resources.length; i++) {
+                resources[i].randomEquipmentFailure(effects);
+            }
+            shakeCloudPanel();
+        }
+
         var failureButton = $("#failure-button");
-        failureButton.click(equipmentFailure);
+        failureButton.click(randomEquipmentFailure);
 
         var resetCostButton = $("#reset-cost-button");
         resetCostButton.click(function() {
             totalCost.reset();
             totalCostDisplay.update();
+            cumulativeResponseTime.reset();
         });
+
+        var startButton = $("#start-button");
+        var stopButton = $("#stop-button");
 
         var maxClients = 0;
         for (i = 0; i < clientTypes.length; i++) {
@@ -609,7 +694,58 @@ $(document).ready(function() {
         $("button").button();
         $("button").tooltip({ container: "body" });
 
-        $("#btn-replay-intro").click(replayIntro);
+        $("#btn-replay-intro").click(replayIntroCallback);
+
+        function tick(frameNum) {
+            var i;
+            if (frameNum % 10 === 0) {
+                var loadPercent = 0;
+                costThisTick.reset();
+
+                for (i = 0; i < resources.length; i++) {
+                    resources[i].tick();
+                    loadPercent += resources[i].getLoadPercent();
+                    costThisTick.increaseBy(resources[i].getTickCost());
+                }
+
+                responseTimeBox.setLoadPercent(loadPercent / resources.length);
+                cumulativeResponseTime.add(responseTimeBox.getResponseTime());
+
+                totalCost.increaseBy(costThisTick);
+                costThisTickDisplay.update();
+                totalCostDisplay.update();
+            }
+
+            var numClients = 0;
+            for (i = 0; i < clientTypes.length; i++) {
+                numClients += clientTypes[i].getNumClients();
+            }
+
+            network.tick(frameNum, numClients, responseTimeBox.getResponseTime());
+            effects.tick();
+
+            timerCallback(frameNum);
+        }
+
+        var mainTimer = Timer(tick);
+
+        function pause() {
+            mainTimer.pause();
+            network.pause();
+            $("." + PARTICLE_CLASS).pause();
+        }
+
+        function resume() {
+            mainTimer.resume();
+            network.resume();
+            $("." + PARTICLE_CLASS).resume();
+        }
+
+        var aboutBox = AboutBox();
+        $("#btn-about").click(function() {
+            pause();
+            aboutBox.run(resume);
+        });
 
         return {
             resources: resources,
@@ -623,11 +759,40 @@ $(document).ready(function() {
             hideResetCostButton: function() {
                 resetCostButton.hide();
             },
+            showStartButton: function() {
+                startButton.show();
+            },
+            hideStartButton: function() {
+                startButton.hide();
+            },
+            showStopButton: function() {
+                stopButton.show();
+            },
+            hideStopButton: function() {
+                stopButton.hide();
+            },
             showFailureButton: function() {
                 failureButton.show();
             },
             hideFailureButton: function() {
                 failureButton.hide();
+            },
+            enableDemandSliders: function() {
+                for (var i = 0; i < clientTypes.length; i++) {
+                    clientTypes[i].enableSlider();
+                }
+            },
+            disableDemandSliders: function() {
+                for (var i = 0; i < clientTypes.length; i++) {
+                    clientTypes[i].disableSlider();
+                }
+            },
+            setNumClients: function(vals) {
+                var i = 0;
+                while (i < clientTypes.length && i < vals.length) {
+                    clientTypes[i].setNumClients(vals[i]);
+                    i++;
+                }
             },
             enableResourceAutoSliders: function() {
                 for (var i = 0; i < resources.length; i++) {
@@ -640,48 +805,21 @@ $(document).ready(function() {
                 }
             },
             equipmentFailure: equipmentFailure,
+            randomEquipmentFailure: randomEquipmentFailure,
             addEffect: function(effect) {
                 effects.add(effect);
             },
-            tick: function(frameNum) {
-                var i;
-                if (frameNum % 10 === 0) {
-                    var loadPercent = 0;
-                    costThisTick.reset();
-
-                    for (i = 0; i < resources.length; i++) {
-                        resources[i].tick();
-                        loadPercent += resources[i].getLoadPercent();
-                        costThisTick.increaseBy(resources[i].getTickCost());
-                    }
-
-                    responseTimeBox.setLoadPercent(loadPercent / resources.length);
-
-                    totalCost.increaseBy(costThisTick);
-                    costThisTickDisplay.update();
-                    totalCostDisplay.update();
-                }
-
-                var numClients = 0;
-                for (i = 0; i < clientTypes.length; i++) {
-                    numClients += clientTypes[i].getNumClients();
-                }
-
-                network.tick(frameNum, numClients, responseTimeBox.getResponseTime());
-                effects.tick();
+            tick: tick,
+            startTimer: function() {
+                mainTimer.start();
             },
-            pause: function() {
-                network.pause();
-                $("." + PARTICLE_CLASS).pause();
-            },
-            resume: function() {
-                network.resume();
-                $("." + PARTICLE_CLASS).resume();
-            },
+            pause: pause,
+            resume: resume,
             reset: function() {
-                var i;
-
+                mainTimer.reset();
                 $("#cloud-panel").stop(true, true);
+
+                var i;
 
                 for (i = 0; i < resources.length; i++) {
                     resources[i].reset();
@@ -692,6 +830,7 @@ $(document).ready(function() {
                 }
 
                 responseTimeBox.reset();
+                cumulativeResponseTime.reset();
 
                 costThisTick.reset();
                 totalCost.reset();
@@ -828,17 +967,14 @@ $(document).ready(function() {
         var dialog = DialogSequence(dialogSequence);
 
         return {
-            enter: function(callback) {
+            enter: function() {
                 ui.reset();
                 activeIndicator.addClass(ACTIVE);
                 enter(state, ui);
                 if (firstTime) {
                     firstEnter(state);
                     firstTime = false;
-                    this.playIntro(callback);
-                }
-                else {
-                    callback();
+                    this.playIntro();
                 }
             },
             exit: function() {
@@ -846,11 +982,11 @@ $(document).ready(function() {
                 activeIndicator.removeClass(ACTIVE);
             },
             tick: function(frameNum) {
-                ui.tick(frameNum);
                 tick(state, ui, frameNum);
             },
-            playIntro: function(callback) {
-                dialog.run(callback);
+            playIntro: function() {
+                ui.pause();
+                dialog.run(function() { ui.resume(); });
             }
         };
     }
@@ -859,33 +995,19 @@ $(document).ready(function() {
         var parent = $("#mode-selector");
         var currentMode = null;
         var modes = [];
-        var mainTimer = Timer(function(frameNum) { currentMode.tick(frameNum); });
 
         function changeMode(newMode) {
             if (newMode !== currentMode) {
-                mainTimer.reset();
                 if (currentMode !== null) {
                     currentMode.exit();
                 }
                 currentMode = newMode;
-                currentMode.enter(function() { mainTimer.start(); });
+                currentMode.enter();
             }
         }
 
-        function replayIntro() {
-            mainTimer.pause();
-            ui.pause();
-            currentMode.playIntro(function() { ui.resume(); mainTimer.start(); });
-        }
-
-        var aboutBox = AboutBox();
-        $("#btn-about").click(function() {
-            mainTimer.pause();
-            ui.pause();
-            aboutBox.run(function() { ui.resume(); mainTimer.start(); });
-        });
-
-        var ui = UI(replayIntro);
+        var ui = UI(function(frameNum) { currentMode.tick(frameNum); },
+                    function() { currentMode.playIntro(); });
 
         return {
             addMode: function(name, state, enter, firstEnter, exit, tick, dialogSequence) {
@@ -913,8 +1035,12 @@ $(document).ready(function() {
                   null,
                   function(state, ui) {
                       ui.showResetCostButton();
+                      ui.hideStartButton();
+                      ui.hideStopButton();
                       ui.showFailureButton();
+                      ui.enableDemandSliders();
                       ui.disableResourceAutoSliders();
+                      ui.startTimer();
                   },
                   function(state) {},
                   function(state) {},
@@ -932,16 +1058,20 @@ $(document).ready(function() {
                   },
                   function(state, ui) {
                       ui.showResetCostButton();
+                      ui.hideStartButton();
+                      ui.hideStopButton();
                       ui.hideFailureButton();
+                      ui.enableDemandSliders();
                       ui.enableResourceAutoSliders();
                       state.failureTimer = Math.max(state.randomDelay(), 100);
+                      ui.startTimer();
                   },
                   function(state) {},
                   function(state) {},
                   function(state, ui, frameNum) {
                       state.failureTimer--;
                       if (state.failureTimer <= 0) {
-                          ui.equipmentFailure();
+                          ui.randomEquipmentFailure();
                           state.failureTimer = state.randomDelay();
                       }
                   },
@@ -952,7 +1082,10 @@ $(document).ready(function() {
                   null,
                   function(state, ui) {
                       ui.hideResetCostButton();
+                      ui.showStartButton();
+                      ui.hideStopButton();
                       ui.hideFailureButton();
+                      ui.disableDemandSliders();
                       ui.disableResourceAutoSliders();
                   },
                   function(state) {},
