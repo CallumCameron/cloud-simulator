@@ -65,14 +65,18 @@
                 <table class="total-cost-table">
                   <tbody>
                     <tr>
-                      <td class="total-cost-cell-img"><img id="total-cost-money-img" class="slider-img" src="money.png" alt="money" title="Total cost in £"></td>
+                      <td class="total`-cost-cell-img"><img id="total-cost-money-img" class="slider-img" src="money.png" alt="money" title="Total cost in £"></td>
                       <td class="total-cost-cell-text">£<span id="total-cost-money">0</span></td>
-                      <td class="total-cost-cell-img total-cost-cell-bottom"><img id="total-cost-energy-img" class="slider-img" src="power.png" alt="energy" title="Total energy usage in J"></td>
-                      <td class="total-cost-cell-text total-cost-cell-bottom"><span id="total-cost-energy">0</span> J</td>
+                      <td class="total-cost-cell-img"><img id="total-cost-energy-img" class="slider-img" src="power.png" alt="energy" title="Total energy usage in J"></td>
+                      <td class="total-cost-cell-text"><span id="total-cost-energy">0</span> J</td>
+                    </tr>
+                    <tr>
+                      <td colspan="2">Mean</td>
+                      <td id="cumulative-response-load"></td>
+                      <td id="cumulative-response-text" style="font-size: 1em"></td>
                     </tr>
                   </tbody>
                 </table>
-                <div id="cumulative-response-panel"></div>
                 <button id="reset-cost-button" class="btn btn-block btn-default">Reset</button>
               </li>
             </ul>
@@ -163,7 +167,7 @@
       </div>
       <div>
         <p>The Cloud provides three essential resources:</p>
-        <p><img class="intro-icon" src="processor.png" alt="Computation icon" title="Computation"><em>Computation</em> &ndash; processors to run programs.<p>
+        <p><img class="intro-icon" src="processor.png" alt="Computation icon" title="Computation"><em>Computation</em> &ndash; processors to run programs.</p>
         <p><img class="intro-icon" src="network.png" alt="Connectivity icon" title="Connectivity"><em>Connectivity</em> &ndash; network connections between servers.</p>
         <p><img class="intro-icon" src="harddrive.png" alt="Storage icon" title="Storage"><em>Storage</em> &ndash; hard disks and SSDs to store data on.</p>
         <p>Each has a different cost, and uses a different amount of energy. Different websites also have different needs. For example, a video site like YouTube needs a lot of connectivity to serve huge videos quickly. But something like Facebook, which is mainly text and images, doesn&rsquo;t need as much.</p>
@@ -222,6 +226,34 @@
           </div>
           <div class="modal-footer">
             <button type="button" id="about-box-close" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="score-box" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel">Time Up!</h4>
+          </div>
+          <div class="modal-body">
+            <p>Your score (lower is better):</p>
+            <p>
+              <img class="intro-icon" src="money.png" alt="Money icon" title="Money">
+              You spent <strong>£<span id="score-money"></span></strong>.
+            </p>
+            <p>
+              <img class="intro-icon" src="power.png" alt="Energy icon" title="Energy">
+              You used <strong><span id="score-energy"></span> J</strong> of energy.
+            </p>
+            <p>
+              <span class="load-box-colour" id="score-colour"></span>
+              Your average response time was <strong><span id="score-response"></span> ms</strong>.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="score-box-close" class="btn btn-primary" data-dismiss="modal">Close</button>
           </div>
         </div>
       </div>

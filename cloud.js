@@ -120,14 +120,17 @@ $(document).ready(function() {
 
     function LoadBox(unit, widthPercent) {
         var value = 0;
+        var hue = 0;
         var text = $("<span>").text(value);
+        var paragraph = $("<p>").addClass("load-box-text").append(
+            text,
+            unit
+        );
+
         var colourBox = $("<div>").addClass("load-box-colour");
         var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%").append(
             colourBox,
-            $("<p>").addClass("load-box-text").append(
-                text,
-                unit
-            )
+            paragraph
         );
 
         var loadBox = {
@@ -135,14 +138,23 @@ $(document).ready(function() {
                 parent.append(column);
                 return this;
             },
+            addToExisting: function(colourBoxParent, textParent) {
+                colourBoxParent.append(colourBox);
+                textParent.append(paragraph);
+                paragraph.attr("style", "font-size: 1.0em; text-align: left;");
+                return this;
+            },
             getValue: function() {
                 return value;
+            },
+            getHue: function() {
+                return hue;
             },
             setValue: function(percent, textOverride) {
                 value = percent;
 
                 // Update the colour of the box
-                var hue = 0;
+                hue = 0;
 
                 if (percent < 50) {
                     hue = 120;
@@ -200,18 +212,21 @@ $(document).ready(function() {
         };
     }
 
-    function CumulativeResponseTimeBox(parent) {
+    function CumulativeResponseTimeBox() {
         var loadBox = LoadBox(" ms", 100);
-        loadBox.addTo(parent);
+        loadBox.addToExisting($("#cumulative-response-load"), $("#cumulative-response-text"));
         var readings = 0;
         var averageResponseTime = 0;
 
         return {
             getAverageResponseTime: function() {
-                return averageResponseTime;
+                return Math.round(averageResponseTime);
             },
             getTotalResponseTime: function() {
-                return averageResponseTime * readings;
+                return Math.round(averageResponseTime * readings);
+            },
+            getAverageHue: function() {
+                return loadBox.getHue();
             },
             add: function(val) {
                 averageResponseTime = (readings * averageResponseTime + val) / (readings + 1.0);
@@ -718,7 +733,7 @@ $(document).ready(function() {
         }
 
         var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
-        var cumulativeResponseTime = CumulativeResponseTimeBox($("#cumulative-response-panel"));
+        var cumulativeResponseTime = CumulativeResponseTimeBox();
 
         var costThisTickDisplay = CostDisplay(
             $("#tick-cost-money"),
@@ -736,6 +751,8 @@ $(document).ready(function() {
             totalCost
         );
 
+        var scoreBox = ScoreBox();
+
         var countdownTimer = CountdownTimer($("#total-cost-section"),
                                             function() {
                                                 startTimer();
@@ -743,7 +760,16 @@ $(document).ready(function() {
                                             function() {
                                                 reset();
                                             },
-                                            countdownTimerDoneCallback);
+                                            function() {
+                                                pause();
+                                                scoreBox.run(
+                                                    totalCost.getMoney(),
+                                                    totalCost.getPower(),
+                                                    cumulativeResponseTime.getAverageResponseTime(),
+                                                    cumulativeResponseTime.getAverageHue(),
+                                                    function() { resume(); countdownTimerDoneCallback(); }
+                                                );
+                                            });
 
         function shakeCloudPanel() {
             $("#cloud-panel").effect("shake", { distance: 10 });
@@ -1048,6 +1074,39 @@ $(document).ready(function() {
 
         return {
             run: function(callback) {
+                exitCallback = callback;
+                modal.modal("show");
+            }
+        };
+    }
+
+    function ScoreBox() {
+        var modal = $("#score-box");
+        var close = $("#score-box-close");
+        var exitCallback = function() {};
+
+        var moneyDisplay = $("#score-money");
+        var energyDisplay = $("#score-energy");
+        var colourBox = $("#score-colour");
+        var responseDisplay = $("#score-response");
+
+        modal.modal({
+            backdrop: "static",
+            keyboard: false,
+            show: false
+        });
+
+        close.click(function() {
+            modal.modal("hide");
+            exitCallback();
+        });
+
+        return {
+            run: function(money, energy, responseTime, colour, callback) {
+                moneyDisplay.text(money);
+                energyDisplay.text(energy);
+                responseDisplay.text(responseTime);
+                colourBox.attr("style", "background-color: hsl(" + colour + ", 100%, 50%);");
                 exitCallback = callback;
                 modal.modal("show");
             }
