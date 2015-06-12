@@ -274,6 +274,93 @@ $(document).ready(function() {
         };
     }
 
+    function CountdownTimer(parent, startCallback, stopCallback, doneCallback) {
+        var WARNING_CLASS = "text-danger";
+        var startingValue = 0;
+        var seconds = 0;
+        var visible = true;
+
+        var paragraph = $("<p>").addClass("text-center");
+        var display = $("<strong>");
+        paragraph.append(display);
+
+        var startButton = $("<button>").addClass("btn").addClass("btn-block").addClass("btn-success").text("Go!");
+        var stopButton = $("<button>").addClass("btn").addClass("btn-block").addClass("btn-danger").text("Stop");
+
+        parent.append(paragraph, startButton, stopButton);
+
+        stopButton.hide();
+
+        function setValue(val) {
+            function format(val) {
+                if (val < 10) {
+                    return "0" + val;
+                } else {
+                    return val;
+                }
+            }
+
+            seconds = Math.max(val, 0);
+            var min = Math.floor(seconds / 60);
+            var sec = seconds % 60;
+            display.text(format(min) + ":" + format(sec));
+            if (seconds <= 10) {
+                display.addClass(WARNING_CLASS);
+            } else {
+                display.removeClass(WARNING_CLASS);
+            }
+        }
+
+        function reset() {
+            if (visible) {
+                startButton.show();
+                stopButton.hide();
+                setValue(startingValue);
+            }
+        }
+
+        startButton.click(function() {
+            startButton.hide();
+            stopButton.show();
+            startCallback();
+        });
+
+        stopButton.click(function() {
+            reset();
+            stopCallback();
+        })
+
+        return {
+            show: function(val) {
+                visible = true;
+                display.show();
+                startButton.show();
+                stopButton.hide();
+                startingValue = val;
+                setValue(val);
+            },
+            hide: function() {
+                visible = false;
+                display.hide();
+                startButton.hide();
+                stopButton.hide();
+            },
+            setValue: function(val) {
+                startingValue = val;
+                setValue(val);
+            },
+            tick: function() {
+                if (visible && seconds > 0) {
+                    setValue(seconds - 1);
+                    if (seconds <= 0) {
+                        doneCallback();
+                    }
+                }
+            },
+            reset: reset
+        };
+    }
+
     function Resource(name, unitCost, image, tooltip) {
         var WIDTH = 33;
         var STEP = 10;
@@ -608,7 +695,7 @@ $(document).ready(function() {
         };
     }
 
-    function UI(timerCallback, replayIntroCallback) {
+    function UI(timerCallback, replayIntroCallback, countdownTimerDoneCallback) {
         var i;
         var costThisTick = Cost(0, 0);
         var totalCost = Cost(0, 0);
@@ -649,6 +736,15 @@ $(document).ready(function() {
             totalCost
         );
 
+        var countdownTimer = CountdownTimer($("#total-cost-section"),
+                                            function() {
+                                                startTimer();
+                                            },
+                                            function() {
+                                                reset();
+                                            },
+                                            countdownTimerDoneCallback);
+
         function shakeCloudPanel() {
             $("#cloud-panel").effect("shake", { distance: 10 });
         }
@@ -678,9 +774,6 @@ $(document).ready(function() {
             totalCostDisplay.update();
             cumulativeResponseTime.reset();
         });
-
-        var startButton = $("#start-button");
-        var stopButton = $("#stop-button");
 
         var maxClients = 0;
         for (i = 0; i < clientTypes.length; i++) {
@@ -714,6 +807,7 @@ $(document).ready(function() {
                 totalCost.increaseBy(costThisTick);
                 costThisTickDisplay.update();
                 totalCostDisplay.update();
+                countdownTimer.tick();
             }
 
             var numClients = 0;
@@ -729,6 +823,10 @@ $(document).ready(function() {
 
         var mainTimer = Timer(tick);
 
+        function startTimer() {
+            mainTimer.start();
+        }
+
         function pause() {
             mainTimer.pause();
             network.pause();
@@ -739,6 +837,34 @@ $(document).ready(function() {
             mainTimer.resume();
             network.resume();
             $("." + PARTICLE_CLASS).resume();
+        }
+
+        function reset() {
+            mainTimer.reset();
+            $("#cloud-panel").stop(true, true);
+
+            var i;
+
+            for (i = 0; i < resources.length; i++) {
+                resources[i].reset();
+            }
+
+            for (i = 0; i < clientTypes.length; i++) {
+                clientTypes[i].reset();
+            }
+
+            responseTimeBox.reset();
+            cumulativeResponseTime.reset();
+
+            costThisTick.reset();
+            totalCost.reset();
+            costThisTickDisplay.update();
+            totalCostDisplay.update();
+            countdownTimer.reset();
+
+            network.reset();
+            effects.reset();
+            $("." + PARTICLE_CLASS).remove();
         }
 
         var aboutBox = AboutBox();
@@ -753,23 +879,17 @@ $(document).ready(function() {
             getResponseTime: function() {
                 return responseTimeBox.getValue();
             },
+            showCountdownTimer: function(val) {
+                countdownTimer.show(val);
+            },
+            hideCountdownTimer: function() {
+                countdownTimer.hide();
+            },
             showResetCostButton: function() {
                 resetCostButton.show();
             },
             hideResetCostButton: function() {
                 resetCostButton.hide();
-            },
-            showStartButton: function() {
-                startButton.show();
-            },
-            hideStartButton: function() {
-                startButton.hide();
-            },
-            showStopButton: function() {
-                stopButton.show();
-            },
-            hideStopButton: function() {
-                stopButton.hide();
             },
             showFailureButton: function() {
                 failureButton.show();
@@ -810,37 +930,10 @@ $(document).ready(function() {
                 effects.add(effect);
             },
             tick: tick,
-            startTimer: function() {
-                mainTimer.start();
-            },
+            startTimer: startTimer,
             pause: pause,
             resume: resume,
-            reset: function() {
-                mainTimer.reset();
-                $("#cloud-panel").stop(true, true);
-
-                var i;
-
-                for (i = 0; i < resources.length; i++) {
-                    resources[i].reset();
-                }
-
-                for (i = 0; i < clientTypes.length; i++) {
-                    clientTypes[i].reset();
-                }
-
-                responseTimeBox.reset();
-                cumulativeResponseTime.reset();
-
-                costThisTick.reset();
-                totalCost.reset();
-                costThisTickDisplay.update();
-                totalCostDisplay.update();
-
-                network.reset();
-                effects.reset();
-                $("." + PARTICLE_CLASS).remove();
-            }
+            reset: reset
         };
     }
 
@@ -961,7 +1054,7 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(state, enter, firstEnter, exit, tick, ui, activeIndicator, dialogSequence) {
+    function Mode(state, enter, firstEnter, exit, tick, countdownTimerDone, ui, activeIndicator, dialogSequence) {
         var ACTIVE = "active";
         var firstTime = true;
         var dialog = DialogSequence(dialogSequence);
@@ -987,6 +1080,9 @@ $(document).ready(function() {
             playIntro: function() {
                 ui.pause();
                 dialog.run(function() { ui.resume(); });
+            },
+            countdownTimerDone: function() {
+                countdownTimerDone(state, ui);
             }
         };
     }
@@ -1007,12 +1103,13 @@ $(document).ready(function() {
         }
 
         var ui = UI(function(frameNum) { currentMode.tick(frameNum); },
-                    function() { currentMode.playIntro(); });
+                    function() { currentMode.playIntro(); },
+                    function() { currentMode.countdownTimerDone(); });
 
         return {
-            addMode: function(name, state, enter, firstEnter, exit, tick, dialogSequence) {
+            addMode: function(name, state, enter, firstEnter, exit, tick, countdownTimerDone, dialogSequence) {
                 var li = $("<li>");
-                var mode = Mode(state, enter, firstEnter, exit, tick, ui, li, dialogSequence);
+                var mode = Mode(state, enter, firstEnter, exit, tick, countdownTimerDone, ui, li, dialogSequence);
                 var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
                     changeMode(mode);
                 });
@@ -1034,9 +1131,8 @@ $(document).ready(function() {
     modes.addMode("Manual",
                   null,
                   function(state, ui) {
+                      ui.hideCountdownTimer();
                       ui.showResetCostButton();
-                      ui.hideStartButton();
-                      ui.hideStopButton();
                       ui.showFailureButton();
                       ui.enableDemandSliders();
                       ui.disableResourceAutoSliders();
@@ -1045,6 +1141,7 @@ $(document).ready(function() {
                   function(state) {},
                   function(state) {},
                   function(state, ui, frameNum) {},
+                  function(state, ui) {},
                   $("#dialog-manual-mode"));
 
 
@@ -1057,9 +1154,8 @@ $(document).ready(function() {
                       }
                   },
                   function(state, ui) {
+                      ui.hideCountdownTimer();
                       ui.showResetCostButton();
-                      ui.hideStartButton();
-                      ui.hideStopButton();
                       ui.hideFailureButton();
                       ui.enableDemandSliders();
                       ui.enableResourceAutoSliders();
@@ -1075,22 +1171,52 @@ $(document).ready(function() {
                           state.failureTimer = state.randomDelay();
                       }
                   },
+                  function(state, ui) {},
                   $("#dialog-response-mode"));
 
+    var level = {
+        length: 60,
+        demand: {
+            2: [10, 0],
+            10: [50, 30],
+            20: [40, 40],
+            22: [40, 45],
+            25: [40, 50],
+            40: [20, 80],
+            50: [0, 50],
+            55: [0, 25],
+            59: [0, 0]
+        },
+        failure: {
+            30: [1, 3, 5]
+        }
+    };
 
     modes.addMode("Game",
                   null,
                   function(state, ui) {
+                      ui.showCountdownTimer(level.length);
                       ui.hideResetCostButton();
-                      ui.showStartButton();
-                      ui.hideStopButton();
                       ui.hideFailureButton();
                       ui.disableDemandSliders();
                       ui.disableResourceAutoSliders();
                   },
                   function(state) {},
                   function(state) {},
-                  function(state, ui, frameNum) {},
+                  function(state, ui, frameNum) {
+                      if (frameNum % 10 === 0) {
+                          var realFrameNum = Math.floor(frameNum / 10);
+                          if (level.demand.hasOwnProperty(realFrameNum)) {
+                              ui.setNumClients(level.demand[realFrameNum]);
+                          }
+                          if (level.failure.hasOwnProperty(realFrameNum)) {
+                              ui.equipmentFailure(level.failure[realFrameNum]);
+                          }
+                      }
+                  },
+                  function(state, ui) {
+                      ui.reset();
+                  },
                   $("#dialog-game-mode"));
 
     modes.activateFirstMode();
