@@ -474,7 +474,7 @@ $(document).ready(function() {
             1,
             image,
             name + ": one unit needs " + compute + " computation, " + network + " connectivity, " + storage + " storage.",
-            50
+            33
         ).addTo($("#demand-section"));
 
         return {
@@ -724,7 +724,8 @@ $(document).ready(function() {
 
         var clientTypes = [
             ClientType("Facebook", "facebook.png", 0.2, 0.2, 0.2),
-            ClientType("YouTube", "yt.png", 0.2, 1, 0.8)
+            ClientType("Dropbox", "dropbox.png", 0.2, 0.4, 0.8),
+            ClientType("YouTube", "yt.png", 0.2, 0.8, 0.6)
         ];
 
         for (i = 0; i < resources.length; i++) {
@@ -1283,15 +1284,15 @@ $(document).ready(function() {
     var level = {
         length: 60,
         demand: {
-            2: [10, 0],
-            10: [50, 30],
-            20: [40, 40],
-            22: [40, 45],
-            25: [40, 50],
-            40: [20, 80],
-            50: [0, 50],
-            55: [0, 25],
-            59: [0, 0]
+            2: [10, 0, 0],
+            10: [50, 30, 0],
+            20: [40, 40, 20],
+            22: [40, 45, 50],
+            25: [40, 50, 70],
+            40: [20, 80, 70],
+            50: [0, 50, 30],
+            55: [0, 25, 0],
+            59: [0, 0, 0]
         },
         failure: {
             30: [1, 3, 5]
