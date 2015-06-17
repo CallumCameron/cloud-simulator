@@ -78,11 +78,15 @@ $(document).ready(function() {
         }
 
         function decrease(el, steps) {
-            slider.slider("value", Math.max(getValue() - steps * step, min));
-            if (steps !== 0) {
-                el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
-                el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+            if (getValue() > min) {
+                slider.slider("value", Math.max(getValue() - steps * step, min));
+                if (steps !== 0) {
+                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+                    el.add(Spark(slider.offset().left + Math.random() * slider.width(), slider.offset().top + Math.random() * slider.height()));
+                    return true;
+                }
             }
+            return false;
         }
 
         return {
@@ -96,14 +100,12 @@ $(document).ready(function() {
                 return this;
             },
             decrease: function(el, steps) {
-                decrease(el, steps);
-                return this;
+                return decrease(el, steps);
             },
             randomDecrease: function(el) {
                 var RANDOM_RANGE = 4;
                 var steps = Math.round(Math.random() * RANDOM_RANGE);
-                decrease(el, steps);
-                return this;
+                return decrease(el, steps);
             },
             enable: function() {
                 slider.slider("enable");
@@ -432,12 +434,10 @@ $(document).ready(function() {
                 return unitCost.times(slider.getValue());
             },
             equipmentFailure: function(el, steps) {
-                slider.decrease(el, steps);
-                return this;
+                return slider.decrease(el, steps);
             },
             randomEquipmentFailure: function(el) {
-                slider.randomDecrease(el);
-                return this;
+                return slider.randomDecrease(el);
             },
             enableSlider: function() {
                 slider.enable();
@@ -781,22 +781,42 @@ $(document).ready(function() {
 
         function equipmentFailure(vals) {
             var i = 0;
+            var didSomething = false;
             while (i < vals.length && i < resources.length) {
-                resources[i].equipmentFailure(effects, vals[i]);
+                didSomething = resources[i].equipmentFailure(effects, vals[i]) || didSomething;
                 i++;
             }
-            shakeCloudPanel();
+
+            if (didSomething) {
+                shakeCloudPanel();
+            }
+
+            return didSomething;
         }
 
         function randomEquipmentFailure() {
+            var didSomething = false;
             for (var i = 0; i < resources.length; i++) {
-                resources[i].randomEquipmentFailure(effects);
+                didSomething = resources[i].randomEquipmentFailure(effects) || didSomething;
             }
-            shakeCloudPanel();
+
+            if (didSomething) {
+                shakeCloudPanel();
+            }
+
+            return didSomething;
         }
 
         var failureButton = $("#failure-button");
-        failureButton.click(randomEquipmentFailure);
+        failureButton.click(function() {
+            // A manually-induced failure should always shake the
+            // panel, to avoid user confusion, even if the failure
+            // didn't actually do anything and the panel didn't shake
+            // automatically.
+            if (!randomEquipmentFailure()) {
+                shakeCloudPanel();
+            }
+        });
 
         var resetCostButton = $("#reset-cost-button");
         resetCostButton.click(function() {
