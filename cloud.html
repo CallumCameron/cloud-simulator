@@ -70,7 +70,7 @@
                       <td class="total-cost-cell-img"><img id="total-cost-energy-img" class="slider-img" src="power.png" alt="energy" title="Total energy usage in J"></td>
                       <td class="total-cost-cell-text"><span id="total-cost-energy">0</span> J</td>
                     </tr>
-                    <tr>
+                    <tr id="cumulative-response-row">
                       <td class="total-cost-cell-bottom" colspan="2">Mean response time</td>
                       <td class="total-cost-cell-bottom" id="cumulative-response-load"></td>
                       <td class="total-cost-cell-bottom" id="cumulative-response-text" style="font-size: 1em"></td>
@@ -175,11 +175,12 @@
         <p>Click <strong>Next</strong> to see how the Cloud Simulator lets you take control of this balancing act!</p>
       </div>
       <div>
+        <p>After you click <strong>Finish</strong>, you will see two sets of sliders.</p>
         <p>The sliders on the left let you control how many people are using each of the sites. The <em>response time</em> is how long it takes for the site to respond when you click on something &ndash; lower is better! Keep the box green to keep your users happy.</p>
         <p class="text-center">
           <img class="intro-icon" src="response-time.png" alt="Response time">
         </p>
-        <p>The sliders on the right let you control how much resources the Cloud allocates. The load boxes show how hard the servers in the Cloud are working &ndash; if they are red, then things will be slow and the users will get annoyed!</p>
+        <p>The sliders on the right let you control how many resources the Cloud allocates. The load boxes show how hard the servers in the Cloud are working &ndash; if they are red, then things will be slow and the users will get annoyed!</p>
         <p class="text-center">
           <img class="intro-icon" src="load.png" alt="Load">
         </p>

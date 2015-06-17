@@ -439,13 +439,17 @@ $(document).ready(function() {
                 slider.randomDecrease(el);
                 return this;
             },
+            enableSlider: function() {
+                slider.enable();
+                autoMode = false;
+            },
+            disableSlider: function() {
+                slider.disable();
+                autoMode = false;
+            },
             enableAutoMode: function() {
                 slider.disable();
                 autoMode = true;
-            },
-            disableAutoMode: function() {
-                slider.enable();
-                autoMode = false;
             },
             reset: function() {
                 loadBox.reset();
@@ -707,7 +711,7 @@ $(document).ready(function() {
         };
     }
 
-    function UI(timerCallback, replayIntroCallback, countdownTimerDoneCallback) {
+    function UI(timerCallback, replayIntroCallback, countdownTimerStartCallback, countdownTimerDoneCallback) {
         var i;
         var costThisTick = Cost(0, 0);
         var totalCost = Cost(0, 0);
@@ -731,6 +735,7 @@ $(document).ready(function() {
 
         var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
         var cumulativeResponseTime = CumulativeResponseTimeBox();
+        var cumulativeResponseRow = $("#cumulative-response-row");
 
         var costThisTickDisplay = CostDisplay(
             $("#tick-cost-money"),
@@ -753,9 +758,11 @@ $(document).ready(function() {
         var countdownTimer = CountdownTimer($("#total-cost-section"),
                                             function() {
                                                 startTimer();
+                                                countdownTimerStartCallback();
                                             },
                                             function() {
                                                 reset();
+                                                countdownTimerDoneCallback();
                                             },
                                             function() {
                                                 pause();
@@ -902,6 +909,12 @@ $(document).ready(function() {
             getResponseTime: function() {
                 return responseTimeBox.getValue();
             },
+            showCumulativeResponseTime: function() {
+                cumulativeResponseRow.show();
+            },
+            hideCumulativeResponseTime: function() {
+                cumulativeResponseRow.hide();
+            },
             showCountdownTimer: function(val) {
                 countdownTimer.show(val);
             },
@@ -937,14 +950,19 @@ $(document).ready(function() {
                     i++;
                 }
             },
+            enableResourceSliders: function() {
+                for (var i = 0; i < resources.length; i++) {
+                    resources[i].enableSlider();
+                }
+            },
+            disableResourceSliders: function() {
+                for (var i = 0; i < resources.length; i++) {
+                    resources[i].disableSlider();
+                }
+            },
             enableResourceAutoSliders: function() {
                 for (var i = 0; i < resources.length; i++) {
                     resources[i].enableAutoMode();
-                }
-            },
-            disableResourceAutoSliders: function() {
-                for (var i = 0; i < resources.length; i++) {
-                    resources[i].disableAutoMode();
                 }
             },
             equipmentFailure: equipmentFailure,
@@ -1114,7 +1132,7 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(state, enter, firstEnter, exit, tick, countdownTimerDone, ui, activeIndicator, dialogSequence) {
+    function Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, ui, activeIndicator, dialogSequence) {
         var ACTIVE = "active";
         var firstTime = true;
         var dialog = DialogSequence(dialogSequence);
@@ -1141,6 +1159,9 @@ $(document).ready(function() {
                 ui.pause();
                 dialog.run(function() { ui.resume(); });
             },
+            countdownTimerStart: function() {
+                countdownTimerStart(state, ui);
+            },
             countdownTimerDone: function() {
                 countdownTimerDone(state, ui);
             }
@@ -1164,12 +1185,13 @@ $(document).ready(function() {
 
         var ui = UI(function(frameNum) { currentMode.tick(frameNum); },
                     function() { currentMode.playIntro(); },
+                    function() { currentMode.countdownTimerStart(); },
                     function() { currentMode.countdownTimerDone(); });
 
         return {
-            addMode: function(name, state, enter, firstEnter, exit, tick, countdownTimerDone, dialogSequence) {
+            addMode: function(name, state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, dialogSequence) {
                 var li = $("<li>");
-                var mode = Mode(state, enter, firstEnter, exit, tick, countdownTimerDone, ui, li, dialogSequence);
+                var mode = Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, ui, li, dialogSequence);
                 var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
                     changeMode(mode);
                 });
@@ -1191,16 +1213,18 @@ $(document).ready(function() {
     modes.addMode("Manual",
                   null,
                   function(state, ui) {
+                      ui.hideCumulativeResponseTime();
                       ui.hideCountdownTimer();
                       ui.showResetCostButton();
                       ui.showFailureButton();
                       ui.enableDemandSliders();
-                      ui.disableResourceAutoSliders();
+                      ui.enableResourceSliders();
                       ui.startTimer();
                   },
                   function(state) {},
                   function(state) {},
                   function(state, ui, frameNum) {},
+                  function(state, ui) {},
                   function(state, ui) {},
                   $("#dialog-manual-mode"));
 
@@ -1214,6 +1238,7 @@ $(document).ready(function() {
                       }
                   },
                   function(state, ui) {
+                      ui.hideCumulativeResponseTime();
                       ui.hideCountdownTimer();
                       ui.showResetCostButton();
                       ui.hideFailureButton();
@@ -1231,6 +1256,7 @@ $(document).ready(function() {
                           state.failureTimer = state.randomDelay();
                       }
                   },
+                  function(state, ui) {},
                   function(state, ui) {},
                   $("#dialog-response-mode"));
 
@@ -1255,11 +1281,12 @@ $(document).ready(function() {
     modes.addMode("Game",
                   null,
                   function(state, ui) {
+                      ui.showCumulativeResponseTime();
                       ui.showCountdownTimer(level.length);
                       ui.hideResetCostButton();
                       ui.hideFailureButton();
                       ui.disableDemandSliders();
-                      ui.disableResourceAutoSliders();
+                      ui.disableResourceSliders();
                   },
                   function(state) {},
                   function(state) {},
@@ -1275,7 +1302,11 @@ $(document).ready(function() {
                       }
                   },
                   function(state, ui) {
+                      ui.enableResourceSliders();
+                  },
+                  function(state, ui) {
                       ui.reset();
+                      ui.disableResourceSliders();
                   },
                   $("#dialog-game-mode"));
 
