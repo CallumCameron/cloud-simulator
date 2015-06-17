@@ -122,10 +122,8 @@ $(document).ready(function() {
         var value = 0;
         var hue = 0;
         var text = $("<span>").text(value);
-        var paragraph = $("<p>").addClass("load-box-text").append(
-            text,
-            unit
-        );
+        var span = $("<span>").append(text, unit);
+        var paragraph = $("<p>").addClass("load-box-text").append(span);
 
         var colourBox = $("<div>").addClass("load-box-colour");
         var column = $("<div>").addClass("panel-column").attr("style", "width: " + widthPercent + "%").append(
@@ -140,8 +138,7 @@ $(document).ready(function() {
             },
             addToExisting: function(colourBoxParent, textParent) {
                 colourBoxParent.append(colourBox);
-                textParent.append(paragraph);
-                paragraph.attr("style", "font-size: 1.0em; text-align: left;");
+                textParent.append(span);
                 return this;
             },
             getValue: function() {

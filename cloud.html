@@ -65,15 +65,15 @@
                 <table class="total-cost-table">
                   <tbody>
                     <tr>
-                      <td class="total`-cost-cell-img"><img id="total-cost-money-img" class="slider-img" src="money.png" alt="money" title="Total cost in £"></td>
+                      <td class="total-cost-cell-img"><img id="total-cost-money-img" class="slider-img" src="money.png" alt="money" title="Total cost in £"></td>
                       <td class="total-cost-cell-text">£<span id="total-cost-money">0</span></td>
                       <td class="total-cost-cell-img"><img id="total-cost-energy-img" class="slider-img" src="power.png" alt="energy" title="Total energy usage in J"></td>
                       <td class="total-cost-cell-text"><span id="total-cost-energy">0</span> J</td>
                     </tr>
                     <tr>
-                      <td colspan="2">Mean</td>
-                      <td id="cumulative-response-load"></td>
-                      <td id="cumulative-response-text" style="font-size: 1em"></td>
+                      <td class="total-cost-cell-bottom" colspan="2">Mean response time</td>
+                      <td class="total-cost-cell-bottom" id="cumulative-response-load"></td>
+                      <td class="total-cost-cell-bottom" id="cumulative-response-text" style="font-size: 1em"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -248,8 +248,8 @@
               You used <strong><span id="score-energy"></span> J</strong> of energy.
             </p>
             <p>
-              <span class="load-box-colour" id="score-colour"></span>
-              Your average response time was <strong><span id="score-response"></span> ms</strong>.
+              <span class="fake-load-box-colour" id="score-colour"></span>
+              Your mean response time was <strong><span id="score-response"></span> ms</strong>.
             </p>
           </div>
           <div class="modal-footer">

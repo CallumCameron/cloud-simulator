@@ -49,6 +49,19 @@ p {
     margin: auto;
 }
 
+.fake-load-box-colour {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgb(100,100,100);
+    border-radius: 5px;
+    display: inline-block;
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    vertical-align: middle;
+}
+
 .load-box-text {
     text-align: center;
     margin: 0;
@@ -81,12 +94,20 @@ p {
     margin-bottom: 5px;
 }
 
+.total-cost-cell-img {
+    width: 20%;
+}
+
 .total-cost-cell-text {
     width: 30%;
 }
 
+.total-cost-cell-bottom {
+    padding-top: 5px;
+}
+
 .network-main {
-    height: 500px;
+    height: 300px;
     position: relative;
 }
 
