@@ -1001,6 +1001,10 @@ $(document).ready(function() {
             $(pages[i]).addClass(HIDDEN);
         }
 
+        if (pages.length === 1) {
+            skipIntro.addClass(HIDDEN);
+        }
+
         function showPage(pageNum) {
             $(pages[currentPage]).addClass(HIDDEN);
             $(pages[pageNum]).removeClass(HIDDEN);
