@@ -821,9 +821,8 @@ $(document).ready(function() {
 
         var resetCostButton = $("#reset-cost-button");
         resetCostButton.click(function() {
-            totalCost.reset();
-            totalCostDisplay.update();
-            cumulativeResponseTime.reset();
+            reset();
+            startTimer();
         });
 
         var maxClients = 0;
@@ -1201,6 +1200,8 @@ $(document).ready(function() {
                 }
                 currentMode = newMode;
                 currentMode.enter();
+            } else {
+                currentMode.playIntro();
             }
         }
 
