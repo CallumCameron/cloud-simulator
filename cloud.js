@@ -364,6 +364,9 @@ $(document).ready(function() {
                 startingValue = val;
                 setValue(val);
             },
+            getStartingValue: function() {
+                return startingValue;
+            },
             tick: function() {
                 if (visible && seconds > 0) {
                     setValue(seconds - 1);
@@ -435,6 +438,12 @@ $(document).ready(function() {
             },
             getTickCost: function() {
                 return unitCost.times(slider.getValue());
+            },
+            getMinTickCost: function() {
+                return unitCost.times(MIN);
+            },
+            getMaxTickCost: function() {
+                return unitCost.times(MAX);
             },
             equipmentFailure: function(el, steps) {
                 return slider.decrease(el, steps);
@@ -736,6 +745,14 @@ $(document).ready(function() {
             }
         }
 
+        var minTickCost = Cost(0, 0);
+        var maxTickCost = Cost(0, 0);
+
+        for (i = 0; i < resources.length; i++) {
+            minTickCost.increaseBy(resources[i].getMinTickCost());
+            maxTickCost.increaseBy(resources[i].getMaxTickCost());
+        }
+
         var responseTimeBox = ResponseTimeBox().addTo($("#response-section"));
         var cumulativeResponseTime = CumulativeResponseTimeBox();
         var cumulativeResponseRow = $("#cumulative-response-row");
@@ -756,11 +773,7 @@ $(document).ready(function() {
             totalCost
         );
 
-        var scoreBox = ScoreBox();
-        var moneyMin = 0;
-        var moneyMax = 0;
-        var energyMin = 0;
-        var energyMax = 0;
+        var scoreBox = ScoreBox(minTickCost, maxTickCost);
 
         var countdownTimer = CountdownTimer($("#total-cost-section"),
                                             function() {
@@ -774,12 +787,9 @@ $(document).ready(function() {
                                             function() {
                                                 pause();
                                                 scoreBox.run(
+                                                    countdownTimer.getStartingValue(),
                                                     totalCost.getMoney(),
-                                                    moneyMin,
-                                                    moneyMax,
                                                     totalCost.getPower(),
-                                                    energyMin,
-                                                    energyMax,
                                                     cumulativeResponseTime.getAverageResponseTime(),
                                                     cumulativeResponseTime.getAverageHue(),
                                                     function() { resume(); countdownTimerDoneCallback(); }
@@ -950,12 +960,6 @@ $(document).ready(function() {
             },
             hideCountdownTimer: function() {
                 countdownTimer.hide();
-            },
-            setScoreBounds: function(mMin, mMax, eMin, eMax) {
-                moneyMin = mMin;
-                moneyMax = mMax;
-                energyMin = eMin;
-                energyMax = eMax;
             },
             showResetCostButton: function() {
                 resetCostButton.show();
@@ -1132,7 +1136,7 @@ $(document).ready(function() {
         };
     }
 
-    function ScoreBox() {
+    function ScoreBox(minTickCost, maxTickCost) {
         var modal = $("#score-box");
         var close = $("#score-box-close");
         var exitCallback = function() {};
@@ -1158,17 +1162,20 @@ $(document).ready(function() {
         });
 
         return {
-            run: function(money, moneyMin, moneyMax, energy, energyMin, energyMax, responseTime, colour, callback) {
+            run: function(runtime, money, energy, responseTime, colour, callback) {
+                var minCost = minTickCost.times(runtime);
+                var maxCost = maxTickCost.times(runtime);
+
                 function setColour(val, min, max, box) {
                     var hue = percentToHue((val - min) / (max - min) * 100.0);
                     box.attr("style", "background-color: hsl(" + hue + ", 100%, 50%);");
                 }
 
                 moneyDisplay.text(prettyNumber(money));
-                setColour(money, moneyMin, moneyMax, moneyColour);
+                setColour(money, minCost.getMoney(), maxCost.getMoney(), moneyColour);
 
                 energyDisplay.text(prettyNumber(energy));
-                setColour(energy, energyMin, energyMax, energyColour);
+                setColour(energy, minCost.getPower(), maxCost.getPower(), energyColour);
 
                 responseDisplay.text(prettyNumber(responseTime));
                 responseColour.attr("style", "background-color: hsl(" + colour + ", 100%, 50%);");
@@ -1377,11 +1384,7 @@ $(document).ready(function() {
             45: [3, 3, 1],
             70: [1, 3, 1],
             80: [0, 3, 2]
-        },
-        moneyMin: 7200,
-        moneyMax: 72000,
-        energyMin: 7200,
-        energyMax: 72000
+        }
     };
 
     modes.addMode("Game",
@@ -1393,7 +1396,6 @@ $(document).ready(function() {
                       ui.hideFailureButton();
                       ui.disableDemandSliders();
                       ui.disableResourceSliders();
-                      ui.setScoreBounds(level.moneyMin, level.moneyMax, level.energyMin, level.energyMax);
                   },
                   function(state) {},
                   function(state) {},
