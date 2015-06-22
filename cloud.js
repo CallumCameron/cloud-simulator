@@ -11,6 +11,16 @@ $(document).ready(function() {
         return i.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
+    function percentToHue(percent) {
+        if (percent < 50) {
+            return 120;
+        } else if (percent > 100) {
+            return 0;
+        } else {
+            return Math.round((1 - ((percent - 50) / 50)) * 120);
+        }
+    }
+
     function Timer(callback) {
         var frameNum = 1;
         var intervalID = null;
@@ -157,20 +167,9 @@ $(document).ready(function() {
             setValue: function(percent, textOverride) {
                 value = percent;
 
-                // Update the colour of the box
-                hue = 0;
-
-                if (percent < 50) {
-                    hue = 120;
-                } else if (percent > 100) {
-                    hue = 0;
-                } else {
-                    hue = Math.round((1 - ((percent - 50) / 50)) * 120);
-                }
-
+                hue = percentToHue(percent);
                 colourBox.attr("style", "background-color: hsl(" + hue + ", 100%, 50%);");
 
-                // Update the text
                 text.text(prettyNumber(Math.round(textOverride ? textOverride : percent)));
 
                 return this;
@@ -758,6 +757,10 @@ $(document).ready(function() {
         );
 
         var scoreBox = ScoreBox();
+        var moneyMin = 0;
+        var moneyMax = 0;
+        var energyMin = 0;
+        var energyMax = 0;
 
         var countdownTimer = CountdownTimer($("#total-cost-section"),
                                             function() {
@@ -772,7 +775,11 @@ $(document).ready(function() {
                                                 pause();
                                                 scoreBox.run(
                                                     totalCost.getMoney(),
+                                                    moneyMin,
+                                                    moneyMax,
                                                     totalCost.getPower(),
+                                                    energyMin,
+                                                    energyMax,
                                                     cumulativeResponseTime.getAverageResponseTime(),
                                                     cumulativeResponseTime.getAverageHue(),
                                                     function() { resume(); countdownTimerDoneCallback(); }
@@ -943,6 +950,12 @@ $(document).ready(function() {
             },
             hideCountdownTimer: function() {
                 countdownTimer.hide();
+            },
+            setScoreBounds: function(mMin, mMax, eMin, eMax) {
+                moneyMin = mMin;
+                moneyMax = mMax;
+                energyMin = eMin;
+                energyMax = eMax;
             },
             showResetCostButton: function() {
                 resetCostButton.show();
@@ -1125,9 +1138,13 @@ $(document).ready(function() {
         var exitCallback = function() {};
 
         var moneyDisplay = $("#score-money");
+        var moneyColour = $("#score-money-colour");
+
         var energyDisplay = $("#score-energy");
-        var colourBox = $("#score-colour");
+        var energyColour = $("#score-energy-colour");
+
         var responseDisplay = $("#score-response");
+        var responseColour = $("#score-response-colour");
 
         modal.modal({
             backdrop: "static",
@@ -1141,11 +1158,21 @@ $(document).ready(function() {
         });
 
         return {
-            run: function(money, energy, responseTime, colour, callback) {
+            run: function(money, moneyMin, moneyMax, energy, energyMin, energyMax, responseTime, colour, callback) {
+                function setColour(val, min, max, box) {
+                    var hue = percentToHue((val - min) / (max - min) * 100.0);
+                    box.attr("style", "background-color: hsl(" + hue + ", 100%, 50%);");
+                }
+
                 moneyDisplay.text(prettyNumber(money));
+                setColour(money, moneyMin, moneyMax, moneyColour);
+
                 energyDisplay.text(prettyNumber(energy));
+                setColour(energy, energyMin, energyMax, energyColour);
+
                 responseDisplay.text(prettyNumber(responseTime));
-                colourBox.attr("style", "background-color: hsl(" + colour + ", 100%, 50%);");
+                responseColour.attr("style", "background-color: hsl(" + colour + ", 100%, 50%);");
+
                 exitCallback = callback;
                 modal.modal("show");
             }
@@ -1347,7 +1374,14 @@ $(document).ready(function() {
             120: [0, 0, 0]
         },
         failure: {
-        }
+            45: [3, 3, 1],
+            70: [1, 3, 1],
+            80: [0, 3, 2]
+        },
+        moneyMin: 7200,
+        moneyMax: 72000,
+        energyMin: 7200,
+        energyMax: 72000
     };
 
     modes.addMode("Game",
@@ -1359,6 +1393,7 @@ $(document).ready(function() {
                       ui.hideFailureButton();
                       ui.disableDemandSliders();
                       ui.disableResourceSliders();
+                      ui.setScoreBounds(level.moneyMin, level.moneyMax, level.energyMin, level.energyMax);
                   },
                   function(state) {},
                   function(state) {},
