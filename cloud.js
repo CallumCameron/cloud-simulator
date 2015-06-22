@@ -6,6 +6,11 @@ $(document).ready(function() {
     var BASE_RESPONSE_TIME = 100;
     var PARTICLE_CLASS = "particle";
 
+    function prettyNumber(i) {
+        // From https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+        return i.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
     function Timer(callback) {
         var frameNum = 1;
         var intervalID = null;
@@ -166,7 +171,7 @@ $(document).ready(function() {
                 colourBox.attr("style", "background-color: hsl(" + hue + ", 100%, 50%);");
 
                 // Update the text
-                text.text(Math.round(textOverride ? textOverride : percent));
+                text.text(prettyNumber(Math.round(textOverride ? textOverride : percent)));
 
                 return this;
             },
@@ -279,8 +284,8 @@ $(document).ready(function() {
 
         return {
             update: function() {
-                money.text(cost.getMoney());
-                power.text(cost.getPower());
+                money.text(prettyNumber(cost.getMoney()));
+                power.text(prettyNumber(cost.getPower()));
             }
         };
     }
@@ -374,14 +379,16 @@ $(document).ready(function() {
 
     function Resource(name, unitCost, image, tooltip) {
         var WIDTH = 33;
-        var STEP = 10;
+        var MIN = 100;
+        var MAX = 1000;
+        var STEP = 100;
         var loadBox = LoadBox("%", WIDTH).addTo($("#load-section"));
         var slider = Slider(
-            10,
-            100,
+            MIN,
+            MAX,
             STEP,
             image,
-            tooltip + ". One unit costs: £" + unitCost.getMoney() + "/s, " + unitCost.getPower() + " W.",
+            tooltip + ". " + STEP + " units cost: £" + Math.round(STEP * unitCost.getMoney()) + "/s, " + (Math.round(STEP * unitCost.getPower())) + " W.",
             WIDTH
         ).addTo($("#provision-section"));
 
@@ -412,7 +419,7 @@ $(document).ready(function() {
                 loadBox.setValue(Math.min(loadPercent, 100));
 
                 var raw = Math.ceil((demand / DESIRED_PERCENT * 100) / STEP) * STEP;
-                var desiredPosition = Math.min(Math.max(raw, 10), 100);
+                var desiredPosition = Math.min(Math.max(raw, MIN), MAX);
 
                 if (autoMode) {
                     if (sliderPos < desiredPosition) {
@@ -713,15 +720,15 @@ $(document).ready(function() {
         var totalCost = Cost(0, 0);
 
         var resources = [
-            Resource(COMPUTE, Cost(1, 3), "processor.png", "Computation: processors to run the code"),
-            Resource(NETWORK, Cost(3, 1), "network.png", "Connectivity: network infrastructure in the data centre"),
-            Resource(STORAGE, Cost(2, 2), "harddrive.png", "Storage: hard drives and SSDs")
+            Resource(COMPUTE, Cost(0.1, 0.3), "processor.png", "Computation: processors to run the code"),
+            Resource(NETWORK, Cost(0.3, 0.1), "network.png", "Connectivity: network infrastructure in the data centre"),
+            Resource(STORAGE, Cost(0.2, 0.2), "harddrive.png", "Storage: hard drives and SSDs")
         ];
 
         var clientTypes = [
-            ClientType("Facebook", "facebook.png", 0.2, 0.2, 0.2),
-            ClientType("Dropbox", "dropbox.png", 0.2, 0.4, 0.8),
-            ClientType("YouTube", "yt.png", 0.2, 0.8, 0.6)
+            ClientType("Facebook", "facebook.png", 1, 1, 1),
+            ClientType("Dropbox", "dropbox.png", 1, 2, 4),
+            ClientType("YouTube", "yt.png", 1, 4, 3)
         ];
 
         for (i = 0; i < resources.length; i++) {
@@ -1135,9 +1142,9 @@ $(document).ready(function() {
 
         return {
             run: function(money, energy, responseTime, colour, callback) {
-                moneyDisplay.text(money);
-                energyDisplay.text(energy);
-                responseDisplay.text(responseTime);
+                moneyDisplay.text(prettyNumber(money));
+                energyDisplay.text(prettyNumber(energy));
+                responseDisplay.text(prettyNumber(responseTime));
                 colourBox.attr("style", "background-color: hsl(" + colour + ", 100%, 50%);");
                 exitCallback = callback;
                 modal.modal("show");
@@ -1276,20 +1283,70 @@ $(document).ready(function() {
                   $("#dialog-response-mode"));
 
     var level = {
-        length: 60,
+        length: 120,
         demand: {
-            2: [10, 0, 0],
-            10: [50, 30, 0],
-            20: [40, 40, 20],
-            22: [40, 45, 50],
-            25: [40, 50, 70],
-            40: [20, 80, 70],
-            50: [0, 50, 30],
-            55: [0, 25, 0],
-            59: [0, 0, 0]
+            2: [5, 0, 0],
+            4: [10, 0, 0],
+            6: [15, 0, 0],
+            8: [20, 0, 25],
+            10: [25, 0, 50],
+            12: [30, 0, 75],
+            14: [35, 0, 75],
+            16: [40, 40, 75],
+            18: [45, 80, 75],
+            20: [50, 80, 100],
+            22: [55, 80, 100],
+            24: [60, 80, 100],
+            26: [65, 80, 100],
+            28: [70, 30, 80],
+            30: [75, 10, 80],
+            32: [80, 0, 80],
+            34: [85, 0, 80],
+            36: [85, 0, 55],
+            38: [85, 0, 55],
+            40: [85, 10, 55],
+            42: [80, 10, 55],
+            44: [75, 10, 60],
+            46: [70, 10, 60],
+            48: [70, 0, 60],
+            50: [70, 0, 60],
+            52: [70, 0, 90],
+            54: [70, 0, 90],
+            56: [70, 0, 90],
+            58: [70, 0, 90],
+            60: [70, 0, 75],
+            62: [70, 25, 75],
+            64: [70, 50, 75],
+            66: [70, 50, 75],
+            68: [75, 50, 40],
+            70: [80, 10, 40],
+            72: [85, 0, 40],
+            74: [90, 0, 40],
+            76: [95, 0, 60],
+            78: [100, 0, 60],
+            80: [95, 0, 60],
+            82: [90, 35, 60],
+            84: [85, 65, 55],
+            86: [80, 65, 55],
+            88: [75, 65, 55],
+            90: [70, 65, 55],
+            92: [65, 70, 80],
+            94: [60, 10, 80],
+            96: [55, 0, 80],
+            98: [50, 0, 80],
+            100: [45, 0, 100],
+            102: [40, 0, 100],
+            104: [35, 0, 100],
+            106: [30, 45, 100],
+            108: [25, 90, 75],
+            110: [20, 90, 75],
+            112: [15, 90, 50],
+            114: [10, 40, 50],
+            116: [5, 0, 25],
+            118: [0, 0, 25],
+            120: [0, 0, 0]
         },
         failure: {
-            30: [1, 3, 5]
         }
     };
 
