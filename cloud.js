@@ -613,28 +613,26 @@ $(document).ready(function() {
 
     function NetworkAnimation(parent, maxClients) {
         var PACKET_CLASS = "network-packet";
+        var MAX_SPAWNERS = 10;
 
-        function PacketSpawner() {
-            var PACKET_OFFSET = 3;
-            var baseYPos = Math.random() * parent.height();
-            var clientYPos = baseYPos;
-            // var cloudYPos = parent.height() / 2;
-            var cloudYPos = baseYPos;
+        function PacketSpawner(spawnerNum) {
+            var clientYPos = spawnerNum * (parent.height() * 0.35 / MAX_SPAWNERS);
+            var cloudYPos = 0.65 * parent.height() + clientYPos;
             var lastSpawnedClient = 0;
             var lastSpawnedCloud = 0;
             var spawningCloud = false;
+            var startDelay = Math.floor(Math.random() * 10);
             var firstFrame = true;
 
             return {
                 tick: function(frameNum, responseTime) {
                     function spawnClient() {
                         var packet = $("<div>").addClass(PACKET_CLASS);
-                        packet.attr("style", "left: 0px; top: " + (clientYPos - PACKET_OFFSET) + "px;");
+                        packet.attr("style", "left: 0px; top: " + clientYPos + "px;");
                         parent.append(packet);
                         packet.animate(
                             {
-                                left: parent.width() - packet.width(),
-                                top: cloudYPos - PACKET_OFFSET
+                                left: parent.width() - packet.width()
                             },
                             2000,
                             "linear",
@@ -646,14 +644,12 @@ $(document).ready(function() {
                     function spawnCloud() {
                         if (spawningCloud && (frameNum - lastSpawnedCloud > Math.floor(responseTime / 100.0))) {
                             var packet = $("<div>").addClass(PACKET_CLASS);
-                            packet.attr("style", "left: " + (parent.width() - packet.width()) + "px; top: " + (cloudYPos + PACKET_OFFSET) + "px;");
+                            packet.attr("style", "left: " + (parent.width() - packet.width()) + "px; top: " + cloudYPos + "px;");
                             parent.append(packet);
                             packet.animate(
                                 {
-                                    left: 0,
-                                    top: clientYPos + PACKET_OFFSET
+                                    left: 0
                                 },
-                                // 20 * responseTime,
                                 2000,
                                 "linear",
                                 function() { $(this).remove(); }
@@ -662,15 +658,19 @@ $(document).ready(function() {
                         }
                     }
 
-                    if (firstFrame) {
-                        spawnClient();
-                        firstFrame = false;
-                    }
-                    else {
-                        if (frameNum - lastSpawnedClient > 10) {
+                    if (startDelay <= 0) {
+                        if (firstFrame) {
                             spawnClient();
+                            firstFrame = false;
                         }
-                        spawnCloud();
+                        else {
+                            if (frameNum - lastSpawnedClient > 10) {
+                                spawnClient();
+                            }
+                            spawnCloud();
+                        }
+                    } else {
+                        startDelay--;
                     }
                 }
             };
@@ -682,11 +682,11 @@ $(document).ready(function() {
         return {
             tick: function(frameNum, numClients, responseTime) {
                 if (frameNum % 10 === 0) {
-                    numSpawnersNeeded = Math.ceil(numClients / maxClients * 10);
+                    numSpawnersNeeded = Math.ceil(numClients / maxClients * MAX_SPAWNERS);
                 }
 
                 while (packetSpawners.length < numSpawnersNeeded) {
-                    packetSpawners.push(PacketSpawner());
+                    packetSpawners.push(PacketSpawner(packetSpawners.length));
                 }
 
                 while (packetSpawners.length > numSpawnersNeeded) {
