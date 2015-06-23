@@ -722,7 +722,7 @@ $(document).ready(function() {
         };
     }
 
-    function UI(timerCallback, replayIntroCallback, countdownTimerStartCallback, countdownTimerDoneCallback) {
+    function UI(timerCallback, replayIntroCallback, countdownTimerStartCallback, countdownTimerDoneCallback, resetButtonCallback) {
         var i;
         var costThisTick = Cost(0, 0);
         var totalCost = Cost(0, 0);
@@ -842,6 +842,7 @@ $(document).ready(function() {
         var resetCostButton = $("#reset-cost-button");
         resetCostButton.click(function() {
             reset();
+            resetButtonCallback();
             startTimer();
         });
 
@@ -1186,7 +1187,7 @@ $(document).ready(function() {
         };
     }
 
-    function Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, ui, activeIndicator, dialogSequence) {
+    function Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, resetButtonCallback, ui, activeIndicator, dialogSequence) {
         var ACTIVE = "active";
         var firstTime = true;
         var dialog = DialogSequence(dialogSequence);
@@ -1218,6 +1219,9 @@ $(document).ready(function() {
             },
             countdownTimerDone: function() {
                 countdownTimerDone(state, ui);
+            },
+            resetButton: function() {
+                resetButtonCallback(state, ui);
             }
         };
     }
@@ -1242,12 +1246,13 @@ $(document).ready(function() {
         var ui = UI(function(frameNum) { currentMode.tick(frameNum); },
                     function() { currentMode.playIntro(); },
                     function() { currentMode.countdownTimerStart(); },
-                    function() { currentMode.countdownTimerDone(); });
+                    function() { currentMode.countdownTimerDone(); },
+                    function() { currentMode.resetButton(); });
 
         return {
-            addMode: function(name, state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, dialogSequence) {
+            addMode: function(name, state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, resetButtonCallback, dialogSequence) {
                 var li = $("<li>");
-                var mode = Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, ui, li, dialogSequence);
+                var mode = Mode(state, enter, firstEnter, exit, tick, countdownTimerStart, countdownTimerDone, resetButtonCallback, ui, li, dialogSequence);
                 var a = $("<a>").attr("href", "#").text(name + " mode").click(function() {
                     changeMode(mode);
                 });
@@ -1282,6 +1287,7 @@ $(document).ready(function() {
                   function(state, ui, frameNum) {},
                   function(state, ui) {},
                   function(state, ui) {},
+                  function(state, ui) {},
                   $("#dialog-manual-mode"));
 
 
@@ -1314,6 +1320,10 @@ $(document).ready(function() {
                   },
                   function(state, ui) {},
                   function(state, ui) {},
+                  function(state, ui) {
+                      ui.enableResourceAutoSliders();
+                      state.failureTimer = Math.max(state.randomDelay(), 100);
+                  },
                   $("#dialog-response-mode"));
 
     var level = {
@@ -1417,6 +1427,7 @@ $(document).ready(function() {
                       ui.reset();
                       ui.disableResourceSliders();
                   },
+                  function(state, ui) {},
                   $("#dialog-game-mode"));
 
     modes.activateFirstMode();
